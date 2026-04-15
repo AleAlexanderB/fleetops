@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg:      #0D1117;
+    --bg2:     #161B22;
+    --bg3:     #1C2333;
+    --bg4:     #21273A;
+    --border:  rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text:    #E6EDF3;
+    --text2:   #8B949E;
+    --text3:   #6E7681;
+  }
+
+  body {
+    @apply bg-[#0D1117] text-[#E6EDF3] antialiased;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+
+  /* Scrollbar fina */
+  ::-webkit-scrollbar        { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track  { background: transparent; }
+  ::-webkit-scrollbar-thumb  { background: rgba(255,255,255,0.12); border-radius: 4px; }
+}
+
+@layer components {
+  /* ── Tabla base ────────────────────────────────────── */
+  .tbl { @apply w-full text-xs border-collapse; }
+  .tbl thead th {
+    @apply text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-wide
+           text-[#6E7681] border-b border-white/[0.07] bg-[#1C2333];
+  }
+  .tbl tbody tr {
+    @apply border-b border-white/[0.07] transition-colors;
+  }
+  .tbl tbody tr:hover { background: #1C2333; }
+  .tbl tbody tr:last-child { @apply border-b-0; }
+  .tbl td { @apply px-3 py-2 align-middle; }
+
+  /* ── Badge ─────────────────────────────────────────── */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 rounded-full text-[10px] font-semibold;
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+  .badge-green  { background: rgba(16,185,129,0.15); @apply text-emerald-400; }
+  .badge-amber  { background: rgba(245,158,11,0.15); @apply text-amber-400;   }
+  .badge-red    { background: rgba(239,68,68,0.12);   @apply text-red-400;     }
+  .badge-blue   { background: rgba(59,130,246,0.15);  @apply text-blue-400;    }
+  .badge-gray   { background: rgba(255,255,255,0.07); @apply text-[#8B949E];   }
+  .badge-purple { background: rgba(168,85,247,0.12);  @apply text-purple-400;  }
+  .badge-teal   { background: rgba(20,184,166,0.12);  @apply text-teal-400;    }
+
+  /* División badges */
+  .dv-h { background: rgba(20,184,166,0.12);  @apply text-teal-400;    }   /* Hormigón     */
+  .dv-a { background: rgba(245,158,11,0.15);  @apply text-amber-400;   }   /* Agregados    */
+  .dv-p { background: rgba(168,85,247,0.12);  @apply text-purple-400;  }   /* Premoldeados */
+  .dv-o { background: rgba(16,185,129,0.15);  @apply text-emerald-400; }   /* Obras        */
+  .dv-l { background: rgba(96,165,250,0.15);  @apply text-blue-400;    }   /* Logística    */
+  .dv-c { background: rgba(239,68,68,0.12);   @apply text-red-400;     }   /* Corralón     */
+  .dv-t { background: rgba(255,255,255,0.07); @apply text-[#9CA3AF];   }   /* Taller       */
+
+  /* ── Stat card ─────────────────────────────────────── */
+  .stat-card {
+    @apply bg-[#161B22] border border-white/[0.07] rounded-xl p-4;
+  }
+  .stat-label { @apply text-[11px] text-[#8B949E] mb-1.5; }
+  .stat-value { @apply text-2xl font-bold leading-none; }
+  .stat-sub   { @apply text-[11px] text-[#6E7681] mt-1; }
+
+  /* ── Card ──────────────────────────────────────────── */
+  .card { @apply bg-[#161B22] border border-white/[0.07] rounded-xl overflow-hidden; }
+  .card-header {
+    @apply flex items-center justify-between px-4 py-3
+           border-b border-white/[0.07];
+  }
+  .card-title { @apply text-[13px] font-semibold; }
+
+  /* ── Botones ────────────────────────────────────────── */
+  .btn {
+    @apply inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs
+           font-medium transition-colors cursor-pointer border-0 outline-none;
+  }
+  .btn-primary { @apply bg-brand text-white hover:bg-brand-light; }
+  .btn-ghost   { @apply bg-transparent text-[#8B949E] border border-white/[0.12] rounded-md text-xs; }
+  .btn-ghost:hover { background: #1C2333; color: #E6EDF3; }
+
+  /* ── Input / Select ─────────────────────────────────── */
+  .input {
+    @apply bg-[#1C2333] border border-white/[0.07] rounded-md px-3 py-1.5
+           text-xs text-[#E6EDF3] outline-none
+           transition-colors;
+  }
+  .input:focus { border-color: rgba(255,255,255,0.2); }
+  .input::placeholder { color: #6E7681; }
+  select.input { @apply cursor-pointer; }
+
+  /* ── Driver chip ─────────────────────────────────────── */
+  .drv-chip {
+    @apply inline-flex items-center gap-1.5 bg-[#21273A] rounded-full
+           pl-0.5 pr-2 py-0.5 text-[11px] text-[#8B949E];
+  }
+  .drv-av {
+    @apply w-[18px] h-[18px] rounded-full flex items-center
+           justify-center text-[8px] font-bold text-blue-400;
+    background: rgba(59,130,246,0.15);
+  }
+
+  /* ── Progress bar ────────────────────────────────────── */
+  .pbar      { @apply h-1 bg-[#21273A] rounded-full overflow-hidden; }
+  .pbar-fill { @apply h-full rounded-full; }
+}

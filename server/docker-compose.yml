@@ -1,0 +1,65 @@
+# ══════════════════════════════════════════════════════════════════
+# FleetOPS — docker-compose.yml
+# Para correr en Hyper-V / Windows Server 2019
+#
+# Uso:
+#   1. Copiar .env.example como .env y completar credenciales
+#   2. docker compose build --build-arg VITE_API_URL=http://TU_IP:8077
+#   3. docker compose up -d
+#
+# Acceso: http://IP_DEL_SERVIDOR:8077
+# ══════════════════════════════════════════════════════════════════
+
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Reemplazar con la IP real del servidor Hyper-V
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8077}
+    ports:
+      - "8077:8077"
+    env_file:
+      - .env
+    volumes:
+      # Persistir el archivo divisiones.json entre reinicios del contenedor
+      - fleetops_data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # MySQL 8.4 — para historial de viajes (Fase 3)
+  # En Fase 2 el servidor arranca sin DB si DATABASE_URL está vacío
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-fleetops_root}
+      MYSQL_DATABASE:      fleetops
+      MYSQL_USER:          ${DB_USER:-fleetops}
+      MYSQL_PASSWORD:      ${DB_PASSWORD:-fleetops_pass}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    # Puerto NO expuesto al exterior — solo accesible dentro de Docker
+    expose:
+      - "3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "--password=${DB_ROOT_PASSWORD:-fleetops_root_2024}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+    driver: local
+  fleetops_data:
+    driver: local

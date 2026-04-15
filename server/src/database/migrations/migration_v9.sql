@@ -1,0 +1,53 @@
+-- migration_v9.sql
+-- Tabla de tarifas por ruta (origen → destino → precio combustible)
+
+CREATE TABLE IF NOT EXISTS fleetops_tarifas_rutas (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  origen VARCHAR(100) NOT NULL,
+  destino VARCHAR(100) NOT NULL,
+  precio DECIMAL(12,2) NOT NULL DEFAULT 0,
+  notas VARCHAR(255) NULL,
+  activo TINYINT(1) NOT NULL DEFAULT 1,
+  creado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  actualizado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE INDEX uq_origen_destino (origen, destino)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Insertar tarifas iniciales desde la tabla de precios
+INSERT IGNORE INTO fleetops_tarifas_rutas (origen, destino, precio) VALUES
+  ('HOLCIM', 'JUJUY', 5250),
+  ('LOMA', 'JUJUY', 45780),
+  ('HOLCIM', 'VAQUEROS', 8400),
+  ('LOMA', 'VAQUEROS', 43260),
+  ('HOLCIM', 'QUEBRACHAL', 22050),
+  ('LOMA', 'QUEBRACHAL', 45780),
+  ('HOLCIM', 'ARCHIBARCA', 33600),
+  ('LOMA', 'ARCHIBARCA', 76755),
+  ('HOLCIM', 'PICHANAL', 19950),
+  ('LOMA', 'PICHANAL', 50715),
+  ('HOLCIM', 'FRAILE PINTADO', 8400),
+  ('LOMA', 'FRAILE PINTADO', 48300),
+  ('HOLCIM', 'SAN PEDRO', 3465),
+  ('LOMA', 'SAN PEDRO', 45780),
+  ('HOLCIM', 'POSCO', 73920),
+  ('LOMA', 'POSCO', 104265),
+  ('HOLCIM', 'CATUA', 38325),
+  ('LOMA', 'CATUA', 77910),
+  ('AGI', 'S. LORENZO', 5250),
+  ('SALTA', 'JUJUY', 11865),
+  ('LA CALDERA', 'JUJUY', 93135),
+  ('LA CALDERA', 'SALTA', 85890),
+  ('MENDOZA', 'JUJUY', 115080),
+  ('MENDOZA', 'SALTA', 112350),
+  ('CORDOBA', 'JUJUY', 70035),
+  ('CORDOBA', 'SALTA', 67725),
+  ('LA CALDERA', 'CORDOBA', 31290),
+  ('MENDOZA', 'CORDOBA', 57645),
+  ('LA CALDERA', 'MENDOZA', 23415),
+  ('JUJUY', 'SAN JUAN', 89040),
+  ('SALTA', 'SAN JUAN', 86415),
+  ('LA CALDERA', 'SAN JUAN', 21525),
+  ('MENDOZA', 'SAN JUAN', 32865),
+  ('AVELLANEDA', 'POSCO', 138915),
+  ('LOMA', 'CAFAYATE', 45780);

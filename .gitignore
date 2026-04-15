@@ -1,0 +1,39 @@
+# Dependencias
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Build del frontend
+client/dist/
+client/.vite/
+
+# Variables de entorno (NUNCA subir al repo)
+.env
+.env.local
+.env.*.local
+
+# Logs del servidor
+server.log
+server.err
+*.log
+
+# Claude / IDE
+.claude/
+
+# Scripts de debug temporales (opcionales - podés borrar estas líneas si los querés versionar)
+check_*.ps1
+debug_*.ps1
+test_*.ps1
+run_rematch*.ps1
+repair_*.ps1
+fix_vinculos.*
+kill.ps1
+query.ps1
+plan.md
+
+# Datos de BD locales (si los hubiera)
+data/mysql/
+
+# OS
+Thumbs.db
+.DS_Store

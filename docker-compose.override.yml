@@ -1,0 +1,5 @@
+# Override para desarrollo local — expone MySQL al host
+services:
+  db:
+    ports:
+      - "3306:3306"
