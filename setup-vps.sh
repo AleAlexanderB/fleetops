@@ -25,11 +25,16 @@ systemctl start docker
 echo "▶ Instalando git..."
 apt-get install -y -qq git
 
-# ── 4. Clonar repositorio ─────────────────────────────────────
-echo "▶ Clonando repositorio FleetOPS..."
+# ── 4. Clonar o actualizar repositorio ───────────────────────
+echo "▶ Configurando repositorio FleetOPS..."
 mkdir -p /opt/fleetops
 cd /opt/fleetops
-git clone https://github.com/AleAlexanderB/fleetops.git .
+if [ -d ".git" ]; then
+  echo "   Repositorio ya existe, actualizando..."
+  git pull
+else
+  git clone https://github.com/AleAlexanderB/fleetops.git .
+fi
 
 # ── 5. Crear .env de produccion ──────────────────────────────
 echo "▶ Configurando variables de entorno..."
