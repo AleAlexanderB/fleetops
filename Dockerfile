@@ -40,7 +40,8 @@ RUN cd server && npm install --omit=dev
 COPY server/ ./server/
 
 # Build del frontend (desde etapa anterior)
-COPY --from=build-client /app/client/dist ./public
+# vite.config.ts tiene outDir: '../public' → output en /app/public
+COPY --from=build-client /app/public ./public
 
 # Carpeta para datos persistentes (divisiones.json)
 RUN mkdir -p /app/data
