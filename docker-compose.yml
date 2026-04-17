@@ -43,6 +43,31 @@ services:
       retries: 3
       start_period: 30s
 
+  gps-gateway:
+    build:
+      context: ./gps-gateway
+      dockerfile: Dockerfile
+    image: gps-gateway:latest
+    container_name: fleetops_gps_gateway
+    ports:
+      - "3100:3100"
+    env_file: .env
+    environment:
+      GATEWAY_API_KEY: ${GATEWAY_API_KEY:-}
+      GATEWAY_PORT: 3100
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3100/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   db:
     image: mysql:8.0
     container_name: fleetops_db
