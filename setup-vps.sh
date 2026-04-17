@@ -7,7 +7,7 @@
 set -e
 echo ""
 echo "╔══════════════════════════════════════════╗"
-echo "║   FleetOPS — Instalación en VPS          ║"
+echo "║   FleetOPS — Instalacion en VPS          ║"
 echo "╚══════════════════════════════════════════╝"
 echo ""
 
@@ -31,60 +31,57 @@ mkdir -p /opt/fleetops
 cd /opt/fleetops
 git clone https://github.com/AleAlexanderB/fleetops.git .
 
-# ── 5. Crear .env de producción ───────────────────────────────
+# ── 5. Crear .env de produccion ──────────────────────────────
 echo "▶ Configurando variables de entorno..."
 SERVER_IP=$(curl -s ifconfig.me)
 
-cat > .env << EOF
-# ══════════════════════════════════════════════════
+cat > .env << 'ENVEOF'
 # FleetOPS v9 — Variables de entorno (produccion)
-# ══════════════════════════════════════════════════
+# COMPLETAR con las credenciales reales antes de iniciar
 
-# ── Multi-empresa RedGPS ─────────────────────────
+# Multi-empresa RedGPS
 EMPRESA_1_NOMBRE=Corralon el Mercado
-EMPRESA_1_APIKEY=9780e7b24d1d5ed4f7ee70fedb839ccd
-EMPRESA_1_USERNAME=apaza866@gmail.com
-EMPRESA_1_PASSWORD=123456
+EMPRESA_1_APIKEY=COMPLETAR
+EMPRESA_1_USERNAME=COMPLETAR
+EMPRESA_1_PASSWORD=COMPLETAR
 
 EMPRESA_2_NOMBRE=VIAP
-EMPRESA_2_APIKEY=af188c5f943efd3738665bb0591fa130
-EMPRESA_2_USERNAME=uviap@gmail.com
-EMPRESA_2_PASSWORD=123456
+EMPRESA_2_APIKEY=COMPLETAR
+EMPRESA_2_USERNAME=COMPLETAR
+EMPRESA_2_PASSWORD=COMPLETAR
 
-# ── RedGPS (legacy) ──────────────────────────────
-REDGPS_APIKEY=9780e7b24d1d5ed4f7ee70fedb839ccd
-REDGPS_USERNAME=apaza866@gmail.com
-REDGPS_PASSWORD=123456
+# RedGPS (legacy)
+REDGPS_APIKEY=COMPLETAR
+REDGPS_USERNAME=COMPLETAR
+REDGPS_PASSWORD=COMPLETAR
 REDGPS_BASE_URL=http://api.service24gps.com/api/v1
 
-# ── URLs ─────────────────────────────────────────
-VITE_API_URL=http://${SERVER_IP}:8077
-
-# ── Base de datos MySQL (Docker) ─────────────────
-# IMPORTANTE: usar "db" como host (nombre del servicio Docker)
+# Base de datos MySQL (Docker) — NO cambiar el host "db"
 DATABASE_URL=mysql://fleetops:fleetops_2024@db:3306/fleetops
+DB_ROOT_PASSWORD=fleetops_root_2024
+DB_USER=fleetops
+DB_PASSWORD=fleetops_2024
 
-# ── Intervalos de polling ─────────────────────────
+# Intervalos de polling
 POLL_POSICIONES_MS=30000
 POLL_ALERTAS_MS=300000
 POLL_VEHICULOS_MS=3600000
 POLL_GEOCERCAS_MS=3600000
 
-# ── Servidor ─────────────────────────────────────
+# Servidor
 PORT=8077
 NODE_ENV=production
 CORS_ORIGIN=*
-
-# ── Credenciales MySQL (Docker) ───────────────────
-DB_ROOT_PASSWORD=fleetops_root_2024
-DB_USER=fleetops
-DB_PASSWORD=fleetops_2024
-
-# ── Seguridad de API ─────────────────────────────
 API_KEY=
-EOF
+ENVEOF
 
+# Poner la IP real del servidor en VITE_API_URL
+echo "VITE_API_URL=http://${SERVER_IP}:8077" >> .env
 echo "   .env creado con IP: ${SERVER_IP}"
+echo ""
+echo "⚠️  IMPORTANTE: Editar /opt/fleetops/.env con las credenciales RedGPS reales"
+echo "   Usar: nano /opt/fleetops/.env"
+echo ""
 
 # ── 6. Build y arranque ───────────────────────────────────────
 echo "▶ Construyendo imagen Docker (puede tardar 3-5 minutos)..."
@@ -93,7 +90,7 @@ docker compose build
 echo "▶ Iniciando servicios..."
 docker compose up -d
 
-# ── 7. Verificación ───────────────────────────────────────────
+# ── 7. Verificacion ───────────────────────────────────────────
 echo ""
 echo "▶ Esperando que el servidor arranque (30 segundos)..."
 sleep 30
@@ -105,17 +102,16 @@ HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8077/api/aut
 echo ""
 echo "╔══════════════════════════════════════════╗"
 if [ "$HTTP_CODE" = "200" ]; then
-echo "║   ✅ FleetOPS corriendo correctamente!   ║"
+echo "║   FleetOPS corriendo correctamente!      ║"
 else
-echo "║   ⚠️  Verificar logs: docker compose logs ║"
+echo "║   Verificar logs: docker compose logs    ║"
 fi
 echo "╚══════════════════════════════════════════╝"
 echo ""
-echo "🌐 URL del sistema: http://${SERVER_IP}:8077"
+echo "URL del sistema: http://${SERVER_IP}:8077"
 echo ""
-echo "Comandos útiles:"
-echo "  docker compose logs -f        → ver logs en tiempo real"
-echo "  docker compose restart app    → reiniciar solo la app"
-echo "  docker compose down           → apagar todo"
-echo "  cd /opt/fleetops && git pull && docker compose up -d --build  → actualizar"
+echo "Comandos utiles:"
+echo "  docker compose logs -f"
+echo "  docker compose restart app"
+echo "  cd /opt/fleetops && git pull && docker compose up -d --build"
 echo ""
