@@ -30,24 +30,31 @@ export async function pollAlertas() {
       const lista = Array.isArray(data) ? data : (data?.alerts || data?.data || []);
 
       for (const a of lista) {
-        const id = String(a.idalert ?? a.id ?? `${a.idgps}-${a.date}-${a.type}`);
+        const id = String(a.idalert ?? a.IdAlert ?? `${a.Equipo}-${a.Fecha}-${a.Hora}-${a.Descripcion?.slice(0,20)}`);
         if (_procesadas.has(id)) continue;
         _procesadas.add(id);
 
-        const veh = resolverVehiculo(String(a.idgps ?? ''), a.plate ?? '');
+        const veh = resolverVehiculo(String(a.idgps ?? a.Equipo ?? ''), a.plate ?? '');
 
         const alerta = {
           id,
           empresa: nombre,
-          idgps:   String(a.idgps ?? ''),
-          codigo:  veh?.codigo || a.name || '',
-          patente: a.plate || veh?.patente || '',
-          etiqueta: veh?.etiqueta || a.name || String(a.idgps ?? ''),
-          tipoAlerta: a.type || a.alertType || '',
-          descripcion: a.description || a.desc || '',
-          lat:    parseFloat(a.lat ?? a.latitude  ?? 0),
-          lng:    parseFloat(a.lng ?? a.longitude ?? 0),
-          fecha:  a.date || a.datetime || '',
+          // Campos originales RedGPS — preservados para que FleetOPS pueda procesarlos
+          Equipo:      a.Equipo      || '',
+          Descripcion: a.Descripcion || '',
+          Fecha:       a.Fecha       || '',
+          Hora:        a.Hora        || '',
+          Latitud:     a.Latitud     || null,
+          Longitud:    a.Longitud    || null,
+          Conductor:   a.Conductor   || null,
+          // Campos normalizados para otros consumidores
+          codigo:      a.Equipo      || '',
+          descripcion: a.Descripcion || '',
+          fecha:       a.Fecha       || '',
+          hora:        a.Hora        || '',
+          lat:         parseFloat(a.Latitud  ?? 0) || null,
+          lng:         parseFloat(a.Longitud ?? 0) || null,
+          conductor:   a.Conductor || null,
         };
 
         broadcast('alert', { alerta });

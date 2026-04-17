@@ -6,8 +6,7 @@
  * getAlerts.Equipo = codigo interno (ej: "A021") → resolver con getVehiculoPorCodigo()
  */
 
-import { getEmpresas }          from '../../core/empresas.js';
-import { withSyncLog }          from '../../database/sync-log.js';
+import { gatewayEvents }        from '../../gateway/gateway-client.js';
 import { procesarAlertaRedGPS } from '../viajes/libres.js';
 import {
   getVehiculoPorCodigo,
@@ -81,104 +80,85 @@ function buscarGeocercaPorNombre(nombre) {
   return null;
 }
 
-async function _pollAlertas() {
-  const hoy = fechaHoyAR();
-  const empresas = getEmpresas();
-
-  if (_fechaActual !== hoy) {
-    _procesadas  = new Set();
-    _fechaActual = hoy;
-    log('info', `Nuevo dia: ${hoy} — deduplicacion reseteada`);
-  }
-
-  let totalNuevas = 0, totalIgnoradas = 0;
-
-  for (const empresa of empresas) {
-    try {
-      log('info', `[${empresa.nombre}] Consultando alertas del dia ${hoy}...`);
-      // service24gps espera startDate/endDate en formato "YYYY-MM-DD HH:MM:SS"
-      const data = await empresa.client.post('/getAlerts', {
-        startDate: `${hoy} 00:00:00`,
-        endDate:   `${hoy} 23:59:59`,
-      });
-
-      if (!Array.isArray(data)) {
-        log('warn', `[${empresa.nombre}] getAlerts no devolvio un array`);
-        continue;
-      }
-
-      log('info', `[${empresa.nombre}] Alertas recibidas: ${data.length}`);
-
-      const ordenadas = [...data].sort((a, b) =>
-        `${a.Fecha} ${a.Hora}`.localeCompare(`${b.Fecha} ${b.Hora}`)
-      );
-
-      let nuevas = 0, ignoradas = 0;
-
-      for (const alerta of ordenadas) {
-        const { tipo, geocerca: nombreGeocerca } = parsearDescripcion(alerta.Descripcion);
-        if (!tipo || !nombreGeocerca) { ignoradas++; continue; }
-
-        const clave = `${alerta.Equipo}|${alerta.Fecha}|${alerta.Hora}|${tipo}|${nombreGeocerca}`;
-        if (_procesadas.has(clave)) { ignoradas++; continue; }
-
-        const geocerca = buscarGeocercaPorNombre(nombreGeocerca);
-        if (!geocerca) {
-          log('warn', `[${empresa.nombre}] Geocerca no encontrada: "${nombreGeocerca}" (equipo: ${alerta.Equipo})`);
-          ignoradas++;
-          continue;
-        }
-
-        const vehiculo = getVehiculoPorCodigo(alerta.Equipo)
-                      || getVehiculoPorNombre(alerta.Equipo)
-                      || getVehiculoPorPatente(alerta.Equipo)
-                      || {
-                          codigo:       alerta.Equipo,
-                          patente:      null,
-                          etiqueta:     alerta.Equipo,
-                          codigoEquipo: alerta.Equipo,
-                          empresa:      empresa.nombre,
-                          chofer:       null,
-                          division:     null,
-                          subgrupo:     null,
-                          conductor:    alerta.Conductor || null,
-                        };
-
-        if (alerta.Conductor && !vehiculo.chofer) {
-          vehiculo.conductor = alerta.Conductor;
-        }
-
-        await procesarAlertaRedGPS({
-          vehiculo,
-          tipo,
-          geocerca,
-          timestamp: `${alerta.Fecha}T${alerta.Hora}`,
-          latitud:   parseFloat(alerta.Latitud)  || null,
-          longitud:  parseFloat(alerta.Longitud) || null,
-        });
-
-        _procesadas.add(clave);
-        nuevas++;
-      }
-
-      totalNuevas    += nuevas;
-      totalIgnoradas += ignoradas;
-      log('info', `[${empresa.nombre}] Ciclo: nuevas=${nuevas} | ignoradas=${ignoradas}`);
-    } catch (err) {
-      log('error', `[${empresa.nombre}] Error en getAlerts: ${err.message}`);
-    }
-  }
-
-  log('info', `Total alertas: nuevas=${totalNuevas} | ignoradas=${totalIgnoradas} | dedup=${_procesadas.size}`);
-  return { procesadas: totalNuevas, ignoradas: totalIgnoradas, nuevas: totalNuevas };
-}
-
 /** Sembrar claves ya procesadas (para evitar duplicados post-restart) */
 export function seedProcesadas(claves) {
   for (const c of claves) _procesadas.add(c);
   if (claves.length) log('info', `Sembradas ${claves.length} claves de deduplicacion desde DB`);
 }
 
+/**
+ * Inicializa el procesamiento de alertas RedGPS desde el gateway SSE.
+ * Llamar una vez al arranque.
+ */
+export function initAlertasDesdeGateway() {
+  // Reset dedup al cambiar de día
+  setInterval(() => {
+    const hoy = fechaHoyAR();
+    if (_fechaActual !== hoy) {
+      _procesadas  = new Set();
+      _fechaActual = hoy;
+      log('info', `Nuevo día: ${hoy} — deduplicación reseteada`);
+    }
+  }, 60000); // check cada minuto
+
+  gatewayEvents.on('alert', async (event) => {
+    const a = event.alerta;
+    if (!a) return;
+
+    const hoy = fechaHoyAR();
+    if (_fechaActual !== hoy) {
+      _procesadas  = new Set();
+      _fechaActual = hoy;
+    }
+
+    // El gateway preserva Descripcion, Equipo, Fecha, Hora del formato RedGPS
+    // Parsear descripción para detectar tipo geocerca (ingresa/sale)
+    const { tipo, geocerca: nombreGeocerca } = parsearDescripcion(a.descripcion || a.Descripcion || '');
+    if (!tipo || !nombreGeocerca) return;
+
+    const clave = `${a.codigo || a.Equipo}|${a.fecha || a.Fecha}|${a.hora || a.Hora}|${tipo}|${nombreGeocerca}`;
+    if (_procesadas.has(clave)) return;
+
+    const geocerca = buscarGeocercaPorNombre(nombreGeocerca);
+    if (!geocerca) {
+      log('warn', `Geocerca no encontrada desde gateway: "${nombreGeocerca}" (equipo: ${a.codigo || a.Equipo})`);
+      return;
+    }
+
+    const codigoEquipo = a.codigo || a.Equipo || '';
+    const vehiculo = getVehiculoPorCodigo(codigoEquipo)
+                  || getVehiculoPorNombre(codigoEquipo)
+                  || getVehiculoPorPatente(codigoEquipo)
+                  || {
+                      codigo:   codigoEquipo,
+                      patente:  null,
+                      etiqueta: codigoEquipo,
+                      empresa:  a.empresa || null,
+                      chofer:   null,
+                      division: null,
+                      subgrupo: null,
+                      conductor: a.conductor || a.Conductor || null,
+                    };
+
+    await procesarAlertaRedGPS({
+      vehiculo,
+      tipo,
+      geocerca,
+      timestamp: a.fecha && a.hora ? `${a.fecha}T${a.hora}`
+               : (a.Fecha && a.Hora ? `${a.Fecha}T${a.Hora}` : event.timestamp),
+      latitud:  parseFloat(a.lat  ?? a.Latitud  ?? 0) || null,
+      longitud: parseFloat(a.lng  ?? a.Longitud ?? 0) || null,
+    });
+
+    _procesadas.add(clave);
+    log('info', `Alerta gateway procesada: ${codigoEquipo} ${tipo} ${nombreGeocerca}`);
+  });
+
+  log('info', 'Procesamiento de alertas vía gateway SSE iniciado');
+}
+
+/** @deprecated - usar initAlertasDesdeGateway() */
 export async function pollAlertas() {
-  return withSyncLog('getAlerts', _pollAlertas);
+  log('warn', 'pollAlertas() llamado pero ya no usa RedGPS directo');
+  return { procesadas: 0, ignoradas: 0, nuevas: 0 };
 }

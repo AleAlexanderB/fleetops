@@ -32,12 +32,13 @@ import { fileURLToPath } from 'url';
 
 import { initDatabase }          from './database/database.js';
 import { runMigrations }         from './database/migrate.js';
-import { initEmpresas, initAllTokens, getNombresEmpresas } from './core/empresas.js';
+import { initEmpresas }          from './core/empresas.js';
 import { startPolling }          from './core/poller.js';
+import { initGatewayClient }     from './gateway/gateway-client.js';
 import { syncVehiculos }         from './modules/redgps/vehiculos.js';
 import { syncGeocercas }         from './modules/redgps/geocercas.js';
-import { pollPosiciones }        from './modules/redgps/posiciones.js';
-import { pollAlertas }           from './modules/redgps/alertas.js';
+import { initPosicionesDesdeGateway } from './modules/redgps/posiciones.js';
+import { initAlertasDesdeGateway }    from './modules/redgps/alertas.js';
 import { initDivisiones }        from './modules/divisiones/divisiones.js';
 import { initViajesLibres }      from './modules/viajes/libres.js';
 import { initViajesProgramados } from './modules/viajes/programados.js';
@@ -85,43 +86,40 @@ async function bootstrap() {
   // Recalcular estadísticas de rutas con trimmed mean
   await recalcularEstadisticasRutas();
 
-  // 4. Configurar empresas (multi-cuenta RedGPS)
+  // 4. Configurar empresas (para nombres en logs — no obtiene tokens)
+  let empresas;
   try {
-    const empresas = initEmpresas();
-    console.log(`[server] Empresas configuradas: ${empresas.map(e => e.nombre).join(', ')}`);
+    empresas = initEmpresas();
+    console.log(`[server] Empresas: ${empresas.map(e => e.nombre).join(', ')}`);
   } catch (err) {
     console.error('[server] ERROR CRITICO:', err.message);
     process.exit(1);
   }
 
-  // 5. Obtener tokens RedGPS para todas las empresas
-  try {
-    await initAllTokens();
-    console.log('[server] Todos los tokens RedGPS listos');
-  } catch (err) {
-    console.error('[server] ERROR CRITICO: No se pudo obtener token de RedGPS:', err.message);
-    console.error('[server] Verifica las credenciales en .env (EMPRESA_N_* o REDGPS_*)');
-    process.exit(1);
-  }
+  // 5. Iniciar cliente del gateway GPS
+  console.log('[server] Iniciando cliente GPS gateway...');
+  initGatewayClient();
 
-  // 6. Sincronizacion inicial
-  console.log('[server] Sincronizando datos iniciales desde RedGPS...');
+  // 6. Sync inicial — vehículos y geocercas (REST desde gateway)
+  console.log('[server] Sincronizando datos desde gateway...');
   try {
     await syncGeocercas();
-    console.log('[server] Geocercas sincronizadas');
+    console.log('[server] Geocercas sincronizadas desde gateway');
     await syncVehiculos();
-    console.log('[server] Vehiculos sincronizados');
+    console.log('[server] Vehículos sincronizados desde gateway');
   } catch (err) {
-    console.error('[server] Advertencia: sincronizacion inicial incompleta:', err.message);
-    console.error('[server] El sistema intentara resincronizar en el proximo ciclo.');
+    console.error('[server] Advertencia en sync inicial desde gateway:', err.message);
+    console.error('[server] El sistema intentará resincronizar en el próximo ciclo.');
   }
 
-  // 7. Iniciar pollings en background
+  // 7. Iniciar procesamiento event-driven (posiciones y alertas vía gateway SSE)
+  initPosicionesDesdeGateway();
+  initAlertasDesdeGateway();
+
+  // 8. Pollers periódicos — solo vehículos y geocercas (REST)
   startPolling({
-    posiciones: pollPosiciones,   // cada 30s
-    alertas:    pollAlertas,      // cada 5min
-    vehiculos:  syncVehiculos,    // cada hora
-    geocercas:  syncGeocercas,    // cada hora
+    vehiculos: syncVehiculos,    // cada hora
+    geocercas: syncGeocercas,    // cada hora
   });
 
   // 8. Express
@@ -156,11 +154,10 @@ async function bootstrap() {
   });
 
   app.listen(PORT, '0.0.0.0', () => {
-    const nombres = getNombresEmpresas();
     console.log(`\n✓ Servidor corriendo en http://0.0.0.0:${PORT}`);
     console.log(`✓ API disponible en http://0.0.0.0:${PORT}/api`);
     console.log(`✓ Frontend en http://0.0.0.0:${PORT}`);
-    console.log(`✓ Empresas: ${nombres.join(', ')}`);
+    console.log(`✓ Empresas: ${empresas.map(e => e.nombre).join(', ')}`);
     console.log('\nEsperando conexiones...\n');
   });
 }

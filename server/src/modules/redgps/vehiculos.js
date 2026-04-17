@@ -11,9 +11,9 @@
  *   _porIdGps:   idgps → vehiculo    (fallback por IMEI)
  */
 
-import { getEmpresas } from '../../core/empresas.js';
 import { getDivision } from '../divisiones/divisiones.js';
 import { withSyncLog }  from '../../database/sync-log.js';
+import { gatewayGet }   from '../../gateway/gateway-client.js';
 
 let _vehiculos  = new Map();  // codigo → vehiculo
 let _porPatente = new Map();  // patente → vehiculo  (secundario)
@@ -32,104 +32,53 @@ function extraerCodigo(nombre) {
   return nombre.trim().split(/\s+/)[0].toUpperCase();
 }
 
-// ── Sync desde RedGPS (todas las empresas) ───────────────────────────────────
+// ── Sync desde gateway REST ──────────────────────────────────────────────────
 
 async function _syncVehiculos() {
-  const empresas = getEmpresas();
+  const lista      = await gatewayGet('/api/vehicles');
   const nuevos     = new Map();
   const porPatente = new Map();
   const porIdGps   = new Map();
-  let totalSinPatente = 0;
 
-  for (const empresa of empresas) {
-    try {
-      const [listaVehiculos, listaChoferes] = await Promise.all([
-        empresa.client.post('/vehicleGetAll'),
-        empresa.client.post('/driverGetAll'),
-      ]);
+  for (const item of lista) {
+    const codigo = item.codigo;
+    if (!codigo) continue;
 
-      const choferMap = new Map();
-      if (Array.isArray(listaChoferes)) {
-        for (const c of listaChoferes) {
-          if (c.idvehiculo) {
-            choferMap.set(String(c.idvehiculo), {
-              id:       c.id,
-              nombre:   `${c.nombre} ${c.apellido}`.trim(),
-              licencia: c.licencia,
-              cedula:   c.cedula,
-              telefono: c.telefono,
-            });
-          }
-        }
-      }
+    const existente = _vehiculos.get(codigo);
 
-      if (Array.isArray(listaVehiculos)) {
-        for (const v of listaVehiculos) {
-          const codigo = extraerCodigo(v.nombre);
-          if (!codigo) continue;
+    const vehiculo = {
+      codigo:    item.codigo,
+      id:        item.id,
+      idgps:     item.idgps,
+      nombre:    item.nombre,
+      patente:   item.patente || null,
+      etiqueta:  item.etiqueta,
+      tienePatente: !!item.patente,
+      empresa:   item.empresa,
+      // Fields not in gateway — preserved from existing or set to null
+      marca: null, modelo: null, anio: null, color: null,
+      grupoRedGps: null, tipo: null,
+      division:  getDivision(item.codigo)?.division || null,
+      subgrupo:  getDivision(item.codigo)?.subgrupo || null,
+      chofer:    item.conductor ? { nombre: item.conductor } : null,
+      // Preserve dynamic state if vehicle already exists
+      estado:              existente?.estado              || 'desconocido',
+      velocidad:           existente?.velocidad           || 0,
+      latitud:             existente?.latitud             || null,
+      longitud:            existente?.longitud            || null,
+      geocercaActual:      existente?.geocercaActual      || null,
+      ultimaActualizacion: existente?.ultimaActualizacion || null,
+      conductor:           existente?.conductor           || item.conductor || null,
+    };
 
-          const patente   = v.patente?.trim() || null;
-          const divConfig = getDivision(codigo);
-          const chofer    = choferMap.get(String(v.id)) || null;
-          const etiqueta  = patente || codigo;
+    nuevos.set(codigo, vehiculo);
 
-          // Preservar estado dinamico si el vehiculo ya existia en memoria
-          const existente = _vehiculos.get(codigo);
+    if (item.patente) {
+      porPatente.set(item.patente.toUpperCase(), vehiculo);
+    }
 
-          const vehiculo = {
-            // Identificadores
-            codigo,
-            id:           v.id,
-            idgps:        v.idgps || null,
-            nombre:       v.nombre,
-            patente,
-            etiqueta,
-            tienePatente: !!patente,
-
-            // Multi-empresa
-            empresa:      empresa.nombre,
-
-            // Datos del vehiculo
-            marca:        v.marca   || null,
-            modelo:       v.modelo  || null,
-            anio:         v.anio    || null,
-            color:        v.color   || null,
-            grupoRedGps:  v.grupo   || null,
-            tipo:         v.tipo_vehiculo || null,
-
-            // Asignacion local
-            division:     divConfig?.division || null,
-            subgrupo:     divConfig?.subgrupo || null,
-            chofer,
-
-            // Estado dinamico — preservar si ya existe
-            estado:              existente?.estado              || 'desconocido',
-            velocidad:           existente?.velocidad           || 0,
-            latitud:             existente?.latitud             || null,
-            longitud:            existente?.longitud            || null,
-            geocercaActual:      existente?.geocercaActual      || null,
-            ultimaActualizacion: existente?.ultimaActualizacion || null,
-            conductor:           existente?.conductor           || null,
-          };
-
-          nuevos.set(codigo, vehiculo);
-
-          if (patente) {
-            porPatente.set(patente.toUpperCase(), vehiculo);
-          } else {
-            totalSinPatente++;
-          }
-
-          if (v.idgps) {
-            porIdGps.set(v.idgps, vehiculo);
-          }
-        }
-      }
-
-      log('info', `[${empresa.nombre}] ${listaVehiculos?.length ?? 0} vehiculos sincronizados`);
-    } catch (err) {
-      log('error', `[${empresa.nombre}] Error sincronizando vehiculos: ${err.message}`);
-      // No lanzar — continuar con las demas empresas
+    if (item.idgps) {
+      porIdGps.set(item.idgps, vehiculo);
     }
   }
 
@@ -137,7 +86,7 @@ async function _syncVehiculos() {
   _porPatente = porPatente;
   _porIdGps   = porIdGps;
 
-  log('info', `Total sincronizados: ${nuevos.size} equipos (${totalSinPatente} sin patente) de ${empresas.length} empresa(s)`);
+  log('info', `[GatewaySync] ${lista.length} vehiculos sincronizados desde gateway`);
   return [..._vehiculos.values()];
 }
 
@@ -163,6 +112,29 @@ export function actualizarEstadoVehiculo(unitPlate, datosGps) {
   } else if (v.velocidad > 0) {
     v.estado = 'en_ruta';
   } else if (datosGps.Ignition === 1 || datosGps.Ignition === '1') {
+    v.estado = 'detenido_encendido';
+  } else {
+    v.estado = 'inactivo';
+  }
+}
+
+export function actualizarEstadoVehiculoGateway(pos) {
+  const v = (pos.idgps ? _porIdGps.get(pos.idgps) : null)
+         || (pos.patente ? _porPatente.get(pos.patente.toUpperCase()) : null);
+  if (!v) return;
+
+  v.velocidad           = parseFloat(pos.velocidad) || 0;
+  v.ignicion            = pos.ignicion;
+  v.latitud             = parseFloat(pos.lat) || null;
+  v.longitud            = parseFloat(pos.lng) || null;
+  v.ultimaActualizacion = pos.timestamp || null;
+  v.conductor           = pos.conductor || v.chofer?.nombre || null;
+
+  if (_enTaller.get(v.codigo)) {
+    v.estado = 'en_taller';
+  } else if (v.velocidad > 0) {
+    v.estado = 'en_ruta';
+  } else if (pos.ignicion === 1 || pos.ignicion === '1' || pos.ignicion === true) {
     v.estado = 'detenido_encendido';
   } else {
     v.estado = 'inactivo';

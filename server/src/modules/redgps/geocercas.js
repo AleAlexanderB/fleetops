@@ -6,9 +6,9 @@
  *     Cada geocerca tiene campo `empresa`.
  */
 
-import { getEmpresas }  from '../../core/empresas.js';
 import { withSyncLog }  from '../../database/sync-log.js';
 import { getVehiculos } from './vehiculos.js';
+import { gatewayGet }   from '../../gateway/gateway-client.js';
 
 let _geocercas = [];   // array de geocercas enriquecidas
 
@@ -17,11 +17,9 @@ function log(level, msg, data = {}) {
   console[level](`[${ts}] [Geocercas] ${msg}`, Object.keys(data).length ? data : '');
 }
 
-// ── Sync desde RedGPS (todas las empresas) ───────────────────────────────────
+// ── Sync desde gateway REST ──────────────────────────────────────────────────
 
 async function _syncGeocercas() {
-  const empresas = getEmpresas();
-
   // Preservar stats del sync anterior
   const oldStats = new Map();
   for (const g of _geocercas) {
@@ -32,49 +30,29 @@ async function _syncGeocercas() {
     });
   }
 
+  const lista = await gatewayGet('/api/geocercas');
   const todasGeocercas = [];
 
-  for (const empresa of empresas) {
-    try {
-      const data = await empresa.client.post('/getGeofences');
+  for (const item of lista) {
+    const key  = `${item.empresa}:${item.id}`;
+    const prev = oldStats.get(key);
 
-      if (!Array.isArray(data)) {
-        log('warn', `[${empresa.nombre}] getGeofences no devolvio un array`);
-        continue;
-      }
-
-      for (const g of data) {
-        const key  = `${empresa.nombre}:${g.idCerca}`;
-        const prev = oldStats.get(key);
-
-        // Resolver tipo de geocerca a numero (1=poligonal, 2=circular, 3=lineal)
-        // service24gps: tipo_cerca="Poligonal" (string), idtipo_cerca=1 (numero)
-        // redgps: tipo_cerca=1 (numero)
-        // Probar multiples campos y formatos:
-        const tipoCerca = _resolverTipoCerca(g);
-
-        todasGeocercas.push({
-          idCerca:         g.idCerca,
-          nombre:          g.nombre,
-          tipoCerca:       isNaN(tipoCerca) ? 1 : tipoCerca,  // default poligonal si desconocido
-          color:           g.color,
-          radio:           parseFloat(g.radio) || 0,
-          limiteVelocidad: g.limite_velocidad,
-          visible:         g.visible == null ? 1 : Number(g.visible),  // default visible
-          puntos:          parsePuntos(g.puntos),
-          empresa:         empresa.nombre,
-          division:        null,
-          subgrupo:        null,
-          ingresosHoy:     prev?.ingresosHoy   ?? 0,
-          salidasHoy:      prev?.salidasHoy    ?? 0,
-          equiposDentro:   prev?.equiposDentro ?? new Set(),
-        });
-      }
-
-      log('info', `[${empresa.nombre}] ${data.length} geocercas sincronizadas`);
-    } catch (err) {
-      log('error', `[${empresa.nombre}] Error sincronizando geocercas: ${err.message}`);
-    }
+    todasGeocercas.push({
+      idCerca:         item.id,
+      nombre:          item.nombre,
+      tipoCerca:       item.tipo,
+      color:           null,
+      radio:           item.radio || 0,
+      limiteVelocidad: null,
+      visible:         item.visible ?? 1,
+      puntos:          item.puntos || [],
+      empresa:         item.empresa,
+      division:        null,
+      subgrupo:        null,
+      ingresosHoy:     prev?.ingresosHoy   ?? 0,
+      salidasHoy:      prev?.salidasHoy    ?? 0,
+      equiposDentro:   prev?.equiposDentro ?? new Set(),
+    });
   }
 
   _geocercas = todasGeocercas;
@@ -88,7 +66,7 @@ async function _syncGeocercas() {
     }
   }
 
-  log('info', `Total sincronizadas: ${_geocercas.length} geocercas de ${empresas.length} empresa(s)`);
+  log('info', `[GatewaySync] ${_geocercas.length} geocercas sincronizadas desde gateway`);
 
   // Log de diagnostico
   const resumen = { poligonal: 0, circular: 0, lineal: 0, ocultas: 0, sinPuntos: 0 };

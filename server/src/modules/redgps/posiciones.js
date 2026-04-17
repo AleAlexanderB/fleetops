@@ -9,9 +9,9 @@
  * - Ralentí (motor encendido, velocidad 0, por mas de X minutos)
  */
 
-import { getEmpresas } from '../../core/empresas.js';
+import { gatewayEvents }                    from '../../gateway/gateway-client.js';
 import {
-  actualizarEstadoVehiculo,
+  actualizarEstadoVehiculoGateway,
   actualizarGeocercaVehiculo,
   getVehiculoPorIdGps,
   getVehiculoPorPatente,
@@ -153,137 +153,147 @@ function log(level, msg) {
   console[level](`[${new Date().toISOString()}] [Posiciones] ${msg}`);
 }
 
+/**
+ * Inicializa el procesamiento de posiciones desde el gateway SSE.
+ * Llamar una vez al arranque — no polling, es event-driven.
+ */
+export function initPosicionesDesdeGateway() {
+  // ── positions_update: procesar posiciones y actualizar estado ──────────────
+  gatewayEvents.on('positions_update', async (event) => {
+    const positions    = event.positions || [];
+    const actualizaciones = [];
+    let dentroDeGeocerca  = 0;
+    const equiposDentroTemp = new Map();
+
+    for (const pos of positions) {
+      if (!pos.idgps && !pos.patente) continue;
+
+      // Actualizar estado del vehículo con formato de gateway
+      actualizarEstadoVehiculoGateway(pos);
+
+      // Actualizar geocerca del vehículo
+      actualizarGeocercaVehiculo(pos.patente, pos.idgps, pos.geocerca?.nombre || null);
+
+      // Estadísticas de geocercas
+      if (pos.geocerca) {
+        dentroDeGeocerca++;
+        const codigo = pos.codigo || pos.patente || pos.idgps;
+        if (codigo && pos.geocerca.id) {
+          if (!equiposDentroTemp.has(pos.geocerca.id)) {
+            equiposDentroTemp.set(pos.geocerca.id, new Set());
+          }
+          equiposDentroTemp.get(pos.geocerca.id).add(codigo);
+        }
+      }
+
+      // Acumular distancia GPS para viajes en curso
+      if (pos.codigo) {
+        actualizarPosicionViaje(pos.codigo, pos.lat, pos.lng);
+      }
+
+      // Verificar geocercas temporales
+      const geocercaTemp = verificarPosicionEnTemp(pos.lat, pos.lng);
+      if (geocercaTemp && pos.codigo) {
+        log('info', `[GeoTemp] ${pos.etiqueta || pos.codigo} dentro de geocerca temp "${geocercaTemp.nombre}"`);
+      }
+
+      // Detección de alertas operativas (velocidad, ralentí)
+      if (pos.codigo) {
+        const vehiculo = {
+          codigo: pos.codigo, patente: pos.patente, etiqueta: pos.etiqueta,
+          empresa: pos.empresa, chofer: null, division: null,
+        };
+        _detectarAlertas(
+          vehiculo, pos.velocidad || 0, pos.ignicion,
+          pos.lat, pos.lng,
+          pos.geocerca?.nombre || null,
+          pos.conductor || null,
+          pos.timestamp || null
+        ).catch(err => log('error', `Error en deteccion de alertas: ${err.message}`));
+      }
+
+      actualizaciones.push({
+        unitPlate:  pos.patente  || null,
+        idgps:      pos.idgps    || null,
+        codigo:     pos.codigo   || null,
+        etiqueta:   pos.etiqueta || pos.patente || pos.idgps || null,
+        empresa:    pos.empresa  || null,
+        latitud:    pos.lat,
+        longitud:   pos.lng,
+        velocidad:  pos.velocidad || 0,
+        ignicion:   pos.ignicion,
+        direccion:  pos.rumbo    || null,
+        conductor:  pos.conductor || null,
+        geocerca:   pos.geocerca?.nombre || null,
+        timestamp:  pos.timestamp || null,
+      });
+    }
+
+    if (actualizaciones.length > 0) {
+      actualizarTodosEquiposDentro(equiposDentroTemp);
+    }
+
+    // Push a clientes SSE del frontend FleetOPS
+    if (_sseClients.size > 0) {
+      const payload = JSON.stringify({ type: 'posiciones', data: actualizaciones });
+      for (const res of _sseClients) {
+        try { res.write(`data: ${payload}\n\n`); }
+        catch (_) { _sseClients.delete(res); }
+      }
+    }
+
+    log('info', `Total getdata: ${actualizaciones.length} unidades | en geocerca: ${dentroDeGeocerca} | ralenti_watch: ${_ralentiState.size} | SSE: ${_sseClients.size}`);
+  });
+
+  // ── geocerca_salida → procesar salida de geocerca ──────────────────────────
+  gatewayEvents.on('geocerca_salida', async (event) => {
+    const { equipo, geocerca } = event;
+    if (!equipo || !geocerca) return;
+
+    const vehiculo = {
+      codigo:   equipo.codigo  || equipo.patente || equipo.idgps,
+      patente:  equipo.patente || null,
+      etiqueta: equipo.etiqueta || equipo.codigo || equipo.idgps,
+      empresa:  equipo.empresa  || null,
+      chofer:   null, division: null, subgrupo: null,
+    };
+
+    procesarAlertaRedGPS({
+      vehiculo,
+      tipo:    'sale',
+      geocerca: { idCerca: geocerca.id, nombre: geocerca.nombre },
+      timestamp: event.timestamp || new Date().toISOString(),
+    }).catch(err => log('error', `Error procesando salida geocerca: ${err.message}`));
+  });
+
+  // ── geocerca_entrada → procesar entrada a geocerca ─────────────────────────
+  gatewayEvents.on('geocerca_entrada', async (event) => {
+    const { equipo, geocerca } = event;
+    if (!equipo || !geocerca) return;
+
+    const vehiculo = {
+      codigo:   equipo.codigo  || equipo.patente || equipo.idgps,
+      patente:  equipo.patente || null,
+      etiqueta: equipo.etiqueta || equipo.codigo || equipo.idgps,
+      empresa:  equipo.empresa  || null,
+      chofer:   null, division: null, subgrupo: null,
+    };
+
+    procesarAlertaRedGPS({
+      vehiculo,
+      tipo:    'ingresa',
+      geocerca: { idCerca: geocerca.id, nombre: geocerca.nombre },
+      timestamp: event.timestamp || new Date().toISOString(),
+    }).catch(err => log('error', `Error procesando entrada geocerca: ${err.message}`));
+  });
+
+  log('info', 'Procesamiento de posiciones vía gateway SSE iniciado');
+}
+
+/** @deprecated - use gateway SSE via initPosicionesDesdeGateway() */
 export async function pollPosiciones() {
-  const empresas = getEmpresas();
-  const actualizaciones = [];
-  let dentroDeGeocerca  = 0;
-
-  // Construir mapa temporal de equiposDentro — se asigna atomicamente al final
-  const equiposDentroTemp = new Map();  // idCerca → Set<codigo>
-
-  for (const empresa of empresas) {
-    try {
-      const data = await empresa.client.post('/getdata', { sensores: 0, UseUTCDate: 0 });
-
-      if (!Array.isArray(data)) {
-        log('warn', `[${empresa.nombre}] getdata no devolvio un array`);
-        continue;
-      }
-
-      for (const item of data) {
-        const unitPlate = item.UnitPlate  || null;
-        const idgps     = item.GpsIdentif || null;
-
-        actualizarEstadoVehiculo(unitPlate, item);
-
-        const vehiculo = (idgps ? getVehiculoPorIdGps(idgps) : null)
-                      || (unitPlate ? getVehiculoPorPatente(unitPlate) : null);
-
-        if (!vehiculo && (idgps || unitPlate)) {
-          // Log solo una vez por ciclo, para la primera unidad no resuelta
-          if (!_loggedUnresolved.has(idgps || unitPlate)) {
-            log('warn', `[${empresa.nombre}] Vehiculo no resuelto: idgps=${idgps} plate=${unitPlate}`);
-            _loggedUnresolved.add(idgps || unitPlate);
-          }
-        }
-
-        const lat = parseFloat(item.Latitude);
-        const lng = parseFloat(item.Longitude);
-        const geocercaActual = getGeoercaPorUbicacion(lat, lng);
-
-        actualizarGeocercaVehiculo(unitPlate, idgps, geocercaActual?.nombre || null);
-
-        if (geocercaActual) {
-          dentroDeGeocerca++;
-          const codigo = vehiculo?.codigo ?? unitPlate ?? idgps;
-          if (codigo) {
-            if (!equiposDentroTemp.has(geocercaActual.idCerca)) {
-              equiposDentroTemp.set(geocercaActual.idCerca, new Set());
-            }
-            equiposDentroTemp.get(geocercaActual.idCerca).add(codigo);
-          }
-        }
-
-        // Acumular distancia GPS para viajes en curso
-        if (vehiculo?.codigo) {
-          actualizarPosicionViaje(vehiculo.codigo, lat, lng);
-        }
-
-        // Deteccion de geocercas temporales (viajes programados con punto custom)
-        const geocercaTemp = verificarPosicionEnTemp(lat, lng);
-        if (geocercaTemp && vehiculo?.codigo) {
-          log('info', `[GeoTemp] ${vehiculo.etiqueta || vehiculo.codigo} dentro de geocerca temp "${geocercaTemp.nombre}" (viaje #${geocercaTemp.viajeProgramadoId}, tipo=${geocercaTemp.tipo})`);
-        }
-
-        // Deteccion de alertas operativas (velocidad, ralenti)
-        const vel = parseFloat(item.GpsSpeed) || 0;
-        if (vehiculo) {
-          _detectarAlertas(
-            vehiculo, vel, item.Ignition, lat, lng,
-            geocercaActual?.nombre || null,
-            item.Conductor || null,
-            item.ReportDate || null
-          ).catch(err => log('error', `Error en deteccion de alertas: ${err.message}`));
-        }
-
-        // Deteccion de viajes por cambio de geocerca
-        if (vehiculo) {
-          const clave = vehiculo.codigo;
-          const anterior = _geocercaAnterior.get(clave) || null;
-          const actual   = geocercaActual ? { idCerca: geocercaActual.idCerca, nombre: geocercaActual.nombre } : null;
-          const ts       = item.ReportDate || new Date().toISOString();
-
-          if (anterior && !actual) {
-            procesarAlertaRedGPS({ vehiculo, tipo: 'sale', geocerca: anterior, timestamp: ts }).catch(() => {});
-          } else if (!anterior && actual) {
-            procesarAlertaRedGPS({ vehiculo, tipo: 'ingresa', geocerca: actual, timestamp: ts }).catch(() => {});
-          } else if (anterior && actual && anterior.idCerca !== actual.idCerca) {
-            procesarAlertaRedGPS({ vehiculo, tipo: 'sale', geocerca: anterior, timestamp: ts }).catch(() => {});
-            procesarAlertaRedGPS({ vehiculo, tipo: 'ingresa', geocerca: actual, timestamp: ts }).catch(() => {});
-          }
-
-          _geocercaAnterior.set(clave, actual);
-        }
-
-        actualizaciones.push({
-          unitPlate,
-          idgps,
-          codigo:    vehiculo?.codigo    ?? null,
-          etiqueta:  vehiculo?.etiqueta  ?? unitPlate ?? idgps ?? null,
-          empresa:   vehiculo?.empresa   ?? empresa.nombre,
-          latitud:   lat,
-          longitud:  lng,
-          velocidad: parseFloat(item.GpsSpeed) || 0,
-          ignicion:  item.Ignition,
-          direccion: item.Direction,
-          conductor: item.Conductor,
-          geocerca:  geocercaActual?.nombre || null,
-          timestamp: item.ReportDate,
-        });
-      }
-
-      log('info', `[${empresa.nombre}] getdata: ${data.length} unidades`);
-    } catch (err) {
-      log('error', `[${empresa.nombre}] Error en getdata: ${err.message}`);
-    }
-  }
-
-  // Solo actualizar equiposDentro si obtuvimos datos (no pisar con vacio si hubo timeout)
-  if (actualizaciones.length > 0) {
-    actualizarTodosEquiposDentro(equiposDentroTemp);
-  }
-
-  if (_sseClients.size > 0) {
-    const payload = JSON.stringify({ type: 'posiciones', data: actualizaciones });
-    for (const res of _sseClients) {
-      try { res.write(`data: ${payload}\n\n`); }
-      catch (_) { _sseClients.delete(res); }
-    }
-  }
-
-  const ralentiActivos = _ralentiState.size;
-  log('info', `Total getdata: ${actualizaciones.length} unidades | en geocerca: ${dentroDeGeocerca} | ralenti_watch: ${ralentiActivos} | SSE: ${_sseClients.size}`);
-  return actualizaciones;
+  log('warn', 'pollPosiciones() llamado pero ya no usa RedGPS directo — usar initPosicionesDesdeGateway()');
+  return [];
 }
 
 export function registrarClienteSSE(req, res) {
