@@ -29,24 +29,26 @@ function log(level, msg) {
 }
 
 function enriquecerPosicion(p, empresa) {
-  const idgps = String(p.idgps ?? p.id ?? '');
-  const veh   = resolverVehiculo(idgps, p.plate ?? p.patente ?? '');
+  // Campos reales de RedGPS /getdata: GpsIdentif, UnitPlate, Latitude, Longitude,
+  // GpsSpeed, Ignition, Direction, Conductor, ReportDate
+  const idgps   = String(p.GpsIdentif ?? p.idgps ?? p.id ?? '');
+  const patente = p.UnitPlate ?? p.plate ?? p.patente ?? '';
+  const veh     = resolverVehiculo(idgps, patente);
 
   return {
     empresa,
     idgps,
-    codigo:     veh?.codigo   || p.name    || '',
-    patente:    veh?.patente  || p.plate   || p.patente || '',
-    etiqueta:   veh?.etiqueta || p.name    || p.plate   || idgps,
-    lat:        parseFloat(p.lat  ?? p.latitude  ?? 0),
-    lng:        parseFloat(p.lng  ?? p.longitude ?? 0),
-    velocidad:  parseFloat(p.speed    ?? p.velocidad ?? 0),
-    ignicion:   p.ignition ?? p.ignicion ?? p.acc ?? 0,
-    rumbo:      parseFloat(p.course   ?? p.rumbo    ?? 0),
-    odometro:   parseFloat(p.odometer ?? p.odometro ?? 0),
-    bateria:    p.battery ?? null,
-    timestamp:  p.datetime ?? p.date ?? new Date().toISOString(),
-    geocerca:   null,   // se rellena después
+    codigo:    veh?.codigo   || '',
+    patente:   veh?.patente  || patente || '',
+    etiqueta:  veh?.etiqueta || patente || idgps,
+    lat:       parseFloat(p.Latitude  ?? p.lat  ?? p.latitude  ?? 0),
+    lng:       parseFloat(p.Longitude ?? p.lng  ?? p.longitude ?? 0),
+    velocidad: parseFloat(p.GpsSpeed  ?? p.speed ?? p.velocidad ?? 0),
+    ignicion:  p.Ignition ?? p.ignition ?? p.ignicion ?? 0,
+    rumbo:     parseFloat(p.Direction ?? p.course ?? p.rumbo ?? 0),
+    conductor: p.Conductor ?? p.conductor ?? null,
+    timestamp: p.ReportDate ?? p.datetime ?? p.date ?? new Date().toISOString(),
+    geocerca:  null,   // se rellena después
   };
 }
 

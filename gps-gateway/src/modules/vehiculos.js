@@ -1,28 +1,40 @@
 /**
  * vehiculos.js
  * Sincroniza y cachea la lista de vehículos de todas las empresas.
+ *
+ * Campos reales de RedGPS (/vehicleGetAll):
+ *   v.id, v.idgps, v.nombre ("B012 Descripcion"), v.patente
+ * El código interno es la PRIMERA PALABRA de v.nombre (ej: "B012")
  */
 import { getEmpresas } from '../core/empresas.js';
 
-// Map: idgps (string) → vehiculo enriquecido
-const _vehiculos = new Map();
+// Índices en memoria
+const _vehiculos  = new Map();  // codigo → vehiculo
+const _porPatente = new Map();  // patente uppercase → vehiculo
+const _porIdGps   = new Map();  // idgps → vehiculo
 
 function log(level, msg) {
   console[level](`[${new Date().toISOString()}] [Vehiculos] ${msg}`);
 }
 
+/** El código interno es la primera palabra de v.nombre (ej: "B012 Ford Ranger" → "B012") */
+function extraerCodigo(nombre) {
+  if (!nombre) return null;
+  return nombre.trim().split(/\s+/)[0].toUpperCase();
+}
+
 function normalizar(v, empresa) {
+  const codigo  = extraerCodigo(v.nombre);
+  const patente = v.patente?.trim() || null;
   return {
     empresa,
-    idgps:    String(v.idgps ?? v.id ?? ''),
-    codigo:   v.name        || v.nombre  || '',   // código interno (ej: B012)
-    patente:  v.plate       || v.patente || '',
-    etiqueta: v.name        || v.plate   || String(v.idgps ?? ''),
-    modelo:   v.model       || '',
-    tipo:     v.type        || '',
-    conductor: v.driver     || '',
-    activo:   v.active !== false,
-    raw: v,
+    codigo,
+    id:       v.id    ? String(v.id)    : null,
+    idgps:    v.idgps ? String(v.idgps) : null,
+    nombre:   v.nombre || '',
+    patente,
+    etiqueta: patente || codigo || String(v.id ?? ''),
+    conductor: null,   // se rellena con /driverGetAll
   };
 }
 
@@ -38,7 +50,10 @@ export async function syncVehiculos() {
 
       for (const v of lista) {
         const veh = normalizar(v, nombre);
-        if (veh.idgps) _vehiculos.set(veh.idgps, veh);
+        if (!veh.codigo) continue;
+        _vehiculos.set(veh.codigo, veh);
+        if (veh.idgps)   _porIdGps.set(veh.idgps, veh);
+        if (veh.patente) _porPatente.set(veh.patente.toUpperCase(), veh);
         if (!veh.patente) sinPatente++;
       }
       total += lista.length;
@@ -48,19 +63,18 @@ export async function syncVehiculos() {
     }
   }
 
-  // Also try /driverGetAll for conductor info and update
+  // Conductores (opcional)
   for (const { nombre, client } of empresas) {
     try {
       const data = await client.post('/driverGetAll');
       const lista = Array.isArray(data) ? data : (data?.drivers || data?.data || []);
-      // attach drivers to vehicles by idgps if available
       for (const d of lista) {
-        const idgps = String(d.idgps ?? d.vehicleId ?? '');
-        if (idgps && _vehiculos.has(idgps)) {
-          _vehiculos.get(idgps).conductor = d.name || d.nombre || '';
-        }
+        // Asociar conductor a vehículo por id
+        const vid = String(d.id_vehiculo ?? d.vehicleId ?? d.idgps ?? '');
+        const veh = _porIdGps.get(vid);
+        if (veh) veh.conductor = `${d.nombre ?? ''} ${d.apellido ?? ''}`.trim() || null;
       }
-    } catch { /* optional */ }
+    } catch { /* opcional */ }
   }
 
   log('info', `Total sincronizados: ${total} equipos (${sinPatente} sin patente) de ${empresas.length} empresa(s)`);
@@ -74,18 +88,15 @@ export function getVehiculos(empresaFiltro) {
 }
 
 export function getVehiculoPorIdGps(idgps) {
-  return _vehiculos.get(String(idgps)) || null;
+  return _porIdGps.get(String(idgps)) || null;
 }
 
 export function getVehiculoPorPatente(patente) {
   if (!patente) return null;
-  const p = patente.toUpperCase().trim();
-  for (const v of _vehiculos.values()) {
-    if (v.patente?.toUpperCase().trim() === p) return v;
-  }
-  return null;
+  return _porPatente.get(patente.toUpperCase().trim()) || null;
 }
 
+/** Resuelve vehículo por IMEI primero, luego patente como fallback */
 export function resolverVehiculo(idgps, patente) {
   return getVehiculoPorIdGps(idgps) || getVehiculoPorPatente(patente) || null;
 }
