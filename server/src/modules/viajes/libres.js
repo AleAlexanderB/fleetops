@@ -426,10 +426,24 @@ export function getPosicionActual(codigo) {
 // ── Getters ───────────────────────────────────────────────────────────────────
 
 export function getViajesEnCurso() {
-  return [..._enCurso.values()].map(v => ({
-    ...v,
-    pendienteConfirmacion: _pendiente.get(v.codigo || v.patente)?.geocerca.nombre ?? null,
-  }));
+  return [..._enCurso.values()].map(v => {
+    // Inyectar km acumulados por el tracker GPS en vivo.
+    // Sin esto, v.kmRecorridos queda null mientras el viaje está abierto
+    // (solo se escribe al cerrar el libre) y el cálculo de progreso de
+    // viajes programados queda clavado en 5% aunque el equipo se mueva.
+    // Nota: si el servidor se reinicia a mitad del viaje, el tracker arranca
+    // desde 0 y va acumulando desde la siguiente posición.
+    const clave = v.codigoEquipo || v.codigo || v.patente;
+    const tracker = _distTracker.get(clave);
+    const kmTracker = tracker && tracker.totalKm > 0.1
+      ? Math.round(tracker.totalKm * 10) / 10
+      : null;
+    return {
+      ...v,
+      kmRecorridos: kmTracker ?? v.kmRecorridos,
+      pendienteConfirmacion: _pendiente.get(v.codigo || v.patente)?.geocerca.nombre ?? null,
+    };
+  });
 }
 
 export function getViajesCompletados({ division, subgrupo, codigo, patente, fecha } = {}) {
