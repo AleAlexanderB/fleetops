@@ -140,7 +140,15 @@ export async function actualizarRutaReal(origenId, nombreOrigen, destinoId, nomb
 
   let nuevaDistancia, nuevaDuracion, cantidad;
 
-  if (existente && existente.cantidadViajes > 0) {
+  // Promedio ponderado solo si el cache tiene una distancia válida.
+  // Si el cache tiene NaN (corrupción previa) o 0, tratamos este viaje como
+  // el primero válido y preservamos el contador de viajes.
+  const cacheValido = existente
+    && existente.cantidadViajes > 0
+    && Number.isFinite(existente.distanciaKm)
+    && existente.distanciaKm > 0;
+
+  if (cacheValido) {
     // Promedio ponderado: le damos más peso a viajes recientes
     cantidad = existente.cantidadViajes + 1;
     nuevaDistancia = ((existente.distanciaKm * existente.cantidadViajes) + distanciaKm) / cantidad;
@@ -148,9 +156,10 @@ export async function actualizarRutaReal(origenId, nombreOrigen, destinoId, nomb
       ? Math.round(((existente.duracionAvgMin || duracionMin) * existente.cantidadViajes + duracionMin) / cantidad)
       : existente.duracionAvgMin;
   } else {
-    cantidad = 1;
+    // Primer dato válido: preservar contador si ya existía un registro previo
+    cantidad = (existente?.cantidadViajes || 0) + 1;
     nuevaDistancia = distanciaKm;
-    nuevaDuracion = duracionMin || null;
+    nuevaDuracion = duracionMin || existente?.duracionAvgMin || null;
   }
 
   // Actualizar cache
@@ -230,10 +239,13 @@ export async function recalcularEstadisticasRutas() {
           distancias: [],
         });
       }
-      rutas.get(key).duraciones.push(row.duracion_min);
-      if (row.km_recorridos > 0) {
-        rutas.get(key).distancias.push(row.km_recorridos);
-      }
+      // mysql2 devuelve decimal como string → parsear a número antes de acumular.
+      // Sin parseFloat el reduce concatena strings ("0" + "1.50" = "01.50") y
+      // luego *100 da NaN, que se persiste como 0 en BD pero queda NaN en cache.
+      const dur = parseFloat(row.duracion_min);
+      if (Number.isFinite(dur) && dur > 0) rutas.get(key).duraciones.push(dur);
+      const km = parseFloat(row.km_recorridos);
+      if (Number.isFinite(km) && km > 0) rutas.get(key).distancias.push(km);
     }
 
     let actualizadas = 0;
