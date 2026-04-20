@@ -315,29 +315,41 @@ function calcEstado(vp) {
 }
 
 function buscarViajeReal(vp) {
-  // Tolerancia temporal ±2h para evitar matchear con el viaje equivocado
+  // Tolerancia temporal ±4h: cubre salidas adelantadas/retrasadas reales del chofer
+  // sin matchear con otra operación del mismo equipo en distinto turno.
   const programadoMs = new Date(`${vp.fechaInicio}T${vp.horaInicio}-03:00`).getTime();
-  const TOLERANCIA_MS = 2 * 60 * 60 * 1000; // ±2 horas
+  const TOLERANCIA_MS = 4 * 60 * 60 * 1000; // ±4 horas
 
   // Clave de matching: preferir codigoEquipo, fallback a patente
   const vpKey = (vp.codigoEquipo || vp.patente || '').toUpperCase();
 
   const todos = [...getViajesEnCurso(), ...getViajesCompletados()];
-  return todos.find(vl => {
+
+  // Candidatos: mismo equipo, mismo día, ORIGEN firme, dentro de tolerancia.
+  // Destino ya no es firme: los viajes cortos se cierran muchas veces en una
+  // geocerca distinta a la programada (cooldown en ruta, parada técnica, etc.)
+  // pero siguen siendo el mismo viaje desde el punto de vista operativo.
+  const candidatos = todos.filter(vl => {
     const vlKey = (vl.codigoEquipo || vl.codigo || vl.patente || '').toUpperCase();
     if (vlKey !== vpKey) return false;
     if (!vl.timestampInicio?.startsWith(vp.fechaInicio)) return false;
-
-    // Exigir que AMBAS geocercas coincidan (origen Y destino)
-    // para evitar matchear viajes cortos que comparten solo un punto
-    const origenMatch  = vl.geocercaOrigen?.idCerca  === vp.geocercaOrigenId;
-    const destinoMatch = vl.geocercaDestino?.idCerca === vp.geocercaDestinoId;
-    if (!origenMatch || !destinoMatch) return false;
-
-    // Verificar tolerancia temporal
+    if (vl.geocercaOrigen?.idCerca !== vp.geocercaOrigenId) return false;
     const viajeMs = new Date(vl.timestampInicio).getTime();
     return Math.abs(viajeMs - programadoMs) <= TOLERANCIA_MS;
-  }) ?? null;
+  });
+
+  if (candidatos.length === 0) return null;
+
+  // Priorizar: (1) destino exacto si existe; (2) más cercano al horario programado.
+  candidatos.sort((a, b) => {
+    const aDestOk = a.geocercaDestino?.idCerca === vp.geocercaDestinoId ? 1 : 0;
+    const bDestOk = b.geocercaDestino?.idCerca === vp.geocercaDestinoId ? 1 : 0;
+    if (aDestOk !== bDestOk) return bDestOk - aDestOk;
+    const aDiff = Math.abs(new Date(a.timestampInicio).getTime() - programadoMs);
+    const bDiff = Math.abs(new Date(b.timestampInicio).getTime() - programadoMs);
+    return aDiff - bDiff;
+  });
+  return candidatos[0];
 }
 
 function calcProgreso(vp) {
