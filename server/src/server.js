@@ -46,6 +46,7 @@ import { initRutas, recalcularEstadisticasRutas } from './modules/viajes/rutas.j
 import { initTarifas }          from './modules/tarifas/tarifas.js';
 import { initGeocercasTemp }    from './modules/geocercas/geocercasTemp.js';
 import { initAuth }             from './modules/auth/auth.js';
+import { loadEquiposLookup }   from './modules/redgps/equipos_lookup.js';
 import router                    from './router.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -82,6 +83,7 @@ async function bootstrap() {
   await initViajesLibres();
   await initViajesProgramados();
   await initGeocercasTemp();
+  loadEquiposLookup();
 
   // Recalcular estadísticas de rutas con trimmed mean
   await recalcularEstadisticasRutas();

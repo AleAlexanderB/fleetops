@@ -6,6 +6,10 @@
  */
 
 import { Router } from 'express';
+import multer from 'multer';
+
+// Parser multipart/form-data solo para webhooks que lo requieren (RedGPS .NET client)
+const parseMultipart = multer().none();
 
 // Auth
 import {
@@ -23,11 +27,13 @@ import {
 // Core
 import { getNombresEmpresas, getStatusEmpresas }   from './core/empresas.js';
 import { isConnected }                             from './database/database.js';
+import { isGatewayConnected }                      from './gateway/gateway-client.js';
 
 // RedGPS
 import { getVehiculos, getResumenPorDivision, getVehiculoPorCodigo, getVehiculoPorPatente, setEnTaller } from './modules/redgps/vehiculos.js';
 import { getGeocercas }                         from './modules/redgps/geocercas.js';
 import { registrarClienteSSE, getAlertasConfig }  from './modules/redgps/posiciones.js';
+import { getByImei as getEquipoPorImei }        from './modules/redgps/equipos_lookup.js';
 
 // Geocercas temporales
 import {
@@ -108,6 +114,151 @@ router.post('/auth/login', async (req, res) => {
 
 router.get('/auth/me', authMiddleware, (req, res) => {
   res.json({ ok: true, user: req.user });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// WEBHOOK RedGPS — SIN autenticacion (RedGPS hace el POST sin token)
+// Debe estar ANTES del authMiddleware
+// ══════════════════════════════════════════════════════════════════════════════
+
+router.post('/webhook/redgps', parseMultipart, async (req, res) => {
+  try {
+    const data = req.body;
+    const log = (msg) => console.log(`[${new Date().toISOString()}] [Webhook] ${msg}`);
+
+    // Extraer campos del POST de RedGPS (segun documentacion)
+    const descripcion = data.description || data.descripcion || data.Descripcion || '';
+    const equipoRaw   = data.device  || data.equipo  || data.Equipo  || data.vehicle || '';
+    const fecha       = data.date    || data.fecha   || data.Fecha   || '';
+    const hora        = data.time    || data.hora    || data.Hora    || '';
+    const lat         = parseFloat(data.latitude  || data.Latitud  || data.lat || 0);
+    const lng         = parseFloat(data.longitude || data.Longitud || data.lng || 0);
+    const velocidad   = parseFloat(data.speed     || data.velocidad || 0);
+    const conductor   = data.Conductor || data.conductor || data.driver || null;
+    const patenteRaw  = data.patent  || data.patente || data.UnitPlate || null;
+    const idAlerta    = data.idalert || data.idAlert || null;
+
+    // RedGPS manda el IMEI en data.device; resolver a codigo+patente via catalogo RedGPS
+    // Regla: el CODIGO del activo es el identificador primario, la patente secundaria.
+    const imeiOrCodigo = String(equipoRaw).trim().split(/\s+/)[0];
+    const equipoCatalogo = /^\d{10,}$/.test(imeiOrCodigo) ? getEquipoPorImei(imeiOrCodigo) : null;
+
+    const codigoEquipo = equipoCatalogo?.codigo || imeiOrCodigo.toUpperCase();
+    const patente      = equipoCatalogo?.patente || patenteRaw || null;
+    const clienteRedGPS = equipoCatalogo?.cliente || null;
+
+    log(`Alerta recibida: "${descripcion}" codigo=${codigoEquipo}${patente ? ' patente='+patente : ''}${equipoCatalogo ? '' : ' (sin match catalogo, imei='+imeiOrCodigo+')'} ${fecha} ${hora}`);
+
+    // Resolver vehiculo en BD FleetOPS (usa codigo o patente segun como esté cargado hoy)
+    const vehiculo = getVehiculoPorCodigo(codigoEquipo)
+                  || (patente ? getVehiculoPorPatente(patente) : null)
+                  || null;
+
+    const timestamp = (fecha && hora) ? `${fecha}T${hora}` : new Date().toISOString();
+
+    // Clasificar tipo de alerta
+    const tipoAlerta = clasificarAlerta(descripcion);
+
+    // Extraer nombre de geocerca si es alerta de geocerca
+    let nombreGeocerca = null;
+    if (tipoAlerta === 'geocerca_ingreso' || tipoAlerta === 'geocerca_salida') {
+      nombreGeocerca = descripcion
+        .replace(/ingresa\s*(a\s*)?/gi, '')
+        .replace(/sale\s*(de\s*)?/gi, '')
+        .replace(/entrada\s*(a\s*)?/gi, '')
+        .replace(/salida\s*(de\s*)?/gi, '')
+        .replace(/salio\s*(de\s*)?/gi, '')
+        .replace(/entra\s*(a\s*)?/gi, '')
+        .trim();
+    }
+
+    // PERSISTIR solo alertas operativas (no geocercas — esas van por viajes)
+    const esGeocerca = tipoAlerta === 'geocerca_ingreso' || tipoAlerta === 'geocerca_salida';
+    if (!esGeocerca) {
+      try {
+        await guardarAlerta({
+          tipo:            tipoAlerta,
+          codigoEquipo:    vehiculo?.codigo || codigoEquipo || null,
+          patente:         vehiculo?.patente || patente,
+          etiqueta:        vehiculo?.etiqueta || codigoEquipo || patente || equipo,
+          empresa:         vehiculo?.empresa || null,
+          division:        vehiculo?.division || null,
+          descripcion:     descripcion,
+          geocerca:        null,
+          latitud:         lat || null,
+          longitud:        lng || null,
+          velocidad:       velocidad || null,
+          conductor:       vehiculo?.conductor || conductor,
+          timestampAlerta: timestamp,
+        });
+      } catch (dbErr) {
+        log(`Error al persistir alerta (continua igualmente): ${dbErr.message}`);
+      }
+    }
+
+    // Para geocercas: procesar como viaje libre tambien
+    if (tipoAlerta === 'geocerca_ingreso' || tipoAlerta === 'geocerca_salida') {
+      const tipo = tipoAlerta === 'geocerca_ingreso' ? 'ingresa' : 'sale';
+
+      if (!nombreGeocerca) {
+        log(`No se pudo extraer geocerca de: "${descripcion}"`);
+        res.json({ ok: true, saved: true, processed: false, reason: 'no_geocerca_name' });
+        return;
+      }
+
+      const geocercas = getGeocercas();
+      const norm = s => s.toLowerCase().trim().replace(/\s+/g, ' ');
+      const geoNorm = norm(nombreGeocerca);
+      const geocerca = geocercas.find(g => norm(g.nombre) === geoNorm)
+                    || geocercas.find(g => norm(g.nombre).includes(geoNorm) || geoNorm.includes(norm(g.nombre)));
+
+      if (!geocerca) {
+        log(`Geocerca no encontrada: "${nombreGeocerca}"`);
+        res.json({ ok: true, saved: true, processed: false, reason: 'geocerca_not_found', geocerca: nombreGeocerca });
+        return;
+      }
+
+      const veh = vehiculo || {
+        codigo:    codigoEquipo,
+        patente:   patente,
+        etiqueta:  codigoEquipo || patente || equipo,
+        empresa:   null,
+        chofer:    null,
+        division:  null,
+        subgrupo:  null,
+        conductor: conductor,
+      };
+
+      const { procesarAlertaRedGPS } = await import('./modules/viajes/libres.js');
+      await procesarAlertaRedGPS({
+        vehiculo: veh,
+        tipo,
+        geocerca: { idCerca: geocerca.idCerca, nombre: geocerca.nombre },
+        timestamp,
+      });
+
+      log(`✓ Procesada: ${codigoEquipo} ${tipo} "${geocerca.nombre}" @ ${timestamp}`);
+      res.json({ ok: true, saved: true, processed: true, equipo: codigoEquipo, tipo, geocerca: geocerca.nombre });
+      return;
+    }
+
+    log(`✓ Alerta guardada: ${tipoAlerta} equipo=${codigoEquipo}`);
+    res.json({ ok: true, saved: true, processed: false, tipo: tipoAlerta, equipo: codigoEquipo });
+
+  } catch (err) {
+    console.error(`[Webhook] Error:`, err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+router.get('/webhook/test', (req, res) => {
+  res.json({
+    ok: true,
+    message: 'Webhook endpoint activo',
+    url: '/api/webhook/redgps',
+    method: 'POST',
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -229,13 +380,12 @@ router.get('/diagnostico', (req, res) => {
 });
 
 router.get('/status', (req, res) => {
-  const empresasStatus = getStatusEmpresas();
-  // tokenPresente = true si al menos una empresa tiene token
-  const tokenPresente = empresasStatus.some(e => e.tokenPresente);
+  // v9: tokens los maneja el gateway — tokenPresente = gateway SSE conectado
+  const gatewayConectado = isGatewayConnected();
   res.json({
     ok:        true,
-    redgps:    { tokenPresente, renovacionProgramada: true, refrescando: false },
-    empresas:  empresasStatus,
+    redgps:    { tokenPresente: gatewayConectado, gateway: gatewayConectado, renovacionProgramada: true, refrescando: false },
+    empresas:  getNombresEmpresas().map(n => ({ nombre: n, tokenPresente: gatewayConectado })),
     mysql:     { conectado: isConnected() },
     timestamp: new Date().toISOString(),
   });
@@ -553,12 +703,11 @@ router.post('/debug/fix-geocercas-programados', requireAdmin, async (req, res) =
 
 // Compatibilidad con Fase 2
 router.get('/redgps/status', (req, res) => {
-  const empresasStatus = getStatusEmpresas();
-  const tokenPresente = empresasStatus.some(e => e.tokenPresente);
+  const gatewayConectado = isGatewayConnected();
   res.json({
     ok: true,
-    redgps: { tokenPresente, renovacionProgramada: true, refrescando: false },
-    empresas: empresasStatus,
+    redgps: { tokenPresente: gatewayConectado, gateway: gatewayConectado, renovacionProgramada: true, refrescando: false },
+    empresas: getNombresEmpresas().map(n => ({ nombre: n, tokenPresente: gatewayConectado })),
     timestamp: new Date().toISOString(),
   });
 });
@@ -888,142 +1037,6 @@ router.delete('/divisiones/config/:division/subdivisiones/:nombre', async (req, 
   }
 });
 
-// ── Webhook RedGPS — recepcion de alertas push ──────────────────────────────
-
-router.post('/webhook/redgps', async (req, res) => {
-  try {
-    const data = req.body;
-    const log = (msg) => console.log(`[${new Date().toISOString()}] [Webhook] ${msg}`);
-
-    // Extraer campos del POST de RedGPS (segun documentacion)
-    const descripcion = data.description || data.descripcion || data.Descripcion || '';
-    const equipo      = data.device  || data.equipo  || data.Equipo  || data.vehicle || '';
-    const fecha       = data.date    || data.fecha   || data.Fecha   || '';
-    const hora        = data.time    || data.hora    || data.Hora    || '';
-    const lat         = parseFloat(data.latitude  || data.Latitud  || data.lat || 0);
-    const lng         = parseFloat(data.longitude || data.Longitud || data.lng || 0);
-    const velocidad   = parseFloat(data.speed     || data.velocidad || 0);
-    const conductor   = data.Conductor || data.conductor || data.driver || null;
-    const patente     = data.patent  || data.patente || data.UnitPlate || null;
-    const idAlerta    = data.idalert || data.idAlert || null;
-
-    log(`Alerta recibida: "${descripcion}" equipo=${equipo} ${fecha} ${hora}`);
-
-    // Resolver vehiculo
-    const codigoEquipo = equipo.trim().split(/\s+/)[0].toUpperCase();
-    const vehiculo = getVehiculoPorCodigo(codigoEquipo)
-                  || (patente ? getVehiculoPorPatente(patente) : null)
-                  || null;
-
-    const timestamp = (fecha && hora) ? `${fecha}T${hora}` : new Date().toISOString();
-
-    // Clasificar tipo de alerta
-    const tipoAlerta = clasificarAlerta(descripcion);
-
-    // Extraer nombre de geocerca si es alerta de geocerca
-    let nombreGeocerca = null;
-    if (tipoAlerta === 'geocerca_ingreso' || tipoAlerta === 'geocerca_salida') {
-      nombreGeocerca = descripcion
-        .replace(/ingresa\s*(a\s*)?/gi, '')
-        .replace(/sale\s*(de\s*)?/gi, '')
-        .replace(/entrada\s*(a\s*)?/gi, '')
-        .replace(/salida\s*(de\s*)?/gi, '')
-        .replace(/salio\s*(de\s*)?/gi, '')
-        .replace(/entra\s*(a\s*)?/gi, '')
-        .trim();
-    }
-
-    // PERSISTIR solo alertas operativas (no geocercas — esas van por viajes)
-    const esGeocerca = tipoAlerta === 'geocerca_ingreso' || tipoAlerta === 'geocerca_salida';
-    if (!esGeocerca) {
-      try {
-        await guardarAlerta({
-          tipo:            tipoAlerta,
-          codigoEquipo:    vehiculo?.codigo || codigoEquipo || null,
-          patente:         vehiculo?.patente || patente,
-          etiqueta:        vehiculo?.etiqueta || codigoEquipo || patente || equipo,
-          empresa:         vehiculo?.empresa || null,
-          division:        vehiculo?.division || null,
-          descripcion:     descripcion,
-          geocerca:        null,
-          latitud:         lat || null,
-          longitud:        lng || null,
-          velocidad:       velocidad || null,
-          conductor:       vehiculo?.conductor || conductor,
-          timestampAlerta: timestamp,
-        });
-      } catch (dbErr) {
-        log(`Error al persistir alerta (continua igualmente): ${dbErr.message}`);
-      }
-    }
-
-    // Para geocercas: procesar como viaje libre tambien
-    if (tipoAlerta === 'geocerca_ingreso' || tipoAlerta === 'geocerca_salida') {
-      const tipo = tipoAlerta === 'geocerca_ingreso' ? 'ingresa' : 'sale';
-
-      if (!nombreGeocerca) {
-        log(`No se pudo extraer geocerca de: "${descripcion}"`);
-        res.json({ ok: true, saved: true, processed: false, reason: 'no_geocerca_name' });
-        return;
-      }
-
-      // Buscar geocerca
-      const geocercas = getGeocercas();
-      const norm = s => s.toLowerCase().trim().replace(/\s+/g, ' ');
-      const geoNorm = norm(nombreGeocerca);
-      const geocerca = geocercas.find(g => norm(g.nombre) === geoNorm)
-                    || geocercas.find(g => norm(g.nombre).includes(geoNorm) || geoNorm.includes(norm(g.nombre)));
-
-      if (!geocerca) {
-        log(`Geocerca no encontrada: "${nombreGeocerca}"`);
-        res.json({ ok: true, saved: true, processed: false, reason: 'geocerca_not_found', geocerca: nombreGeocerca });
-        return;
-      }
-
-      const veh = vehiculo || {
-        codigo:    codigoEquipo,
-        patente:   patente,
-        etiqueta:  codigoEquipo || patente || equipo,
-        empresa:   null,
-        chofer:    null,
-        division:  null,
-        subgrupo:  null,
-        conductor: conductor,
-      };
-
-      const { procesarAlertaRedGPS } = await import('./modules/viajes/libres.js');
-      await procesarAlertaRedGPS({
-        vehiculo: veh,
-        tipo,
-        geocerca: { idCerca: geocerca.idCerca, nombre: geocerca.nombre },
-        timestamp,
-      });
-
-      log(`✓ Procesada: ${codigoEquipo} ${tipo} "${geocerca.nombre}" @ ${timestamp}`);
-      res.json({ ok: true, saved: true, processed: true, equipo: codigoEquipo, tipo, geocerca: geocerca.nombre });
-      return;
-    }
-
-    // Para alertas no-geocerca: solo persistir
-    log(`✓ Alerta guardada: ${tipoAlerta} equipo=${codigoEquipo}`);
-    res.json({ ok: true, saved: true, processed: false, tipo: tipoAlerta, equipo: codigoEquipo });
-
-  } catch (err) {
-    console.error(`[Webhook] Error:`, err.message);
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-// Test del webhook
-router.get('/webhook/test', (req, res) => {
-  res.json({
-    ok: true,
-    message: 'Webhook endpoint activo',
-    url: '/api/webhook/redgps',
-    method: 'POST',
-    timestamp: new Date().toISOString(),
-  });
-});
 
 // ── Rutas conocidas ─────────────────────────────────────────────────────────
 

@@ -1,0 +1,1499 @@
+{
+  "meta": {
+    "source": "Reporte_Equipo-Activo-Cliente_20260421074045.xlsx",
+    "generated_at": "2026-04-21T13:48:21.346Z",
+    "total": 186,
+    "con_codigo": 178,
+    "con_patente": 151
+  },
+  "equipos": [
+    {
+      "imei": "862524060848153",
+      "codigo": "R092",
+      "patente": "AH995FM",
+      "cliente": "VIAP",
+      "marca": "Queclink",
+      "modelo": "GV350CEU"
+    },
+    {
+      "imei": "869671079078190",
+      "codigo": "R093",
+      "patente": "AH995FN",
+      "cliente": "VIAP",
+      "marca": "Rinho",
+      "modelo": "SPIDER IoT"
+    },
+    {
+      "imei": "869671079089809",
+      "codigo": "R091",
+      "patente": "AH995FL",
+      "cliente": "VIAP",
+      "marca": "Rinho",
+      "modelo": "SPIDER IoT"
+    },
+    {
+      "imei": "863457051880209",
+      "codigo": "A034",
+      "patente": "AD948PW",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "869671079072508",
+      "codigo": "A062",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Rinho",
+      "modelo": "SPIDER IoT"
+    },
+    {
+      "imei": "869671079072805",
+      "codigo": "R088",
+      "patente": "AH582HI",
+      "cliente": "VIAP",
+      "marca": "Rinho",
+      "modelo": "SPIDER IoT"
+    },
+    {
+      "imei": "869671079074397",
+      "codigo": "R069",
+      "patente": "AH205TB",
+      "cliente": "VIAP",
+      "marca": "Rinho",
+      "modelo": "SPIDER IoT"
+    },
+    {
+      "imei": "869671079070551",
+      "codigo": "R052",
+      "patente": "AG922VF",
+      "cliente": "VIAP",
+      "marca": "Rinho",
+      "modelo": "SPIDER IoT"
+    },
+    {
+      "imei": "869671079070189",
+      "codigo": "R067",
+      "patente": "AH004GL",
+      "cliente": "VIAP",
+      "marca": "Rinho",
+      "modelo": "SPIDER IoT"
+    },
+    {
+      "imei": "863457051883344",
+      "codigo": "I055",
+      "patente": "AF283VR",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "869671079077333",
+      "codigo": "B034",
+      "patente": "AF757PT",
+      "cliente": "Corralón El Mercado",
+      "marca": "Rinho",
+      "modelo": "SPIDER IoT"
+    },
+    {
+      "imei": "869671079074934",
+      "codigo": "B038",
+      "patente": "AG256DD",
+      "cliente": "Corralón El Mercado",
+      "marca": "Rinho",
+      "modelo": "SPIDER IoT"
+    },
+    {
+      "imei": "862524060790967",
+      "codigo": "C029",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV350CEU"
+    },
+    {
+      "imei": "869671079082820",
+      "codigo": "U001",
+      "patente": "AH507AS",
+      "cliente": "VIAP",
+      "marca": "Rinho",
+      "modelo": "SPIDER IoT"
+    },
+    {
+      "imei": "869671079076731",
+      "codigo": "E608",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Rinho",
+      "modelo": "SPIDER IoT"
+    },
+    {
+      "imei": "862524060864010",
+      "codigo": "R006",
+      "patente": "AG717VL",
+      "cliente": "VIAP",
+      "marca": "Queclink",
+      "modelo": "GV350CEU"
+    },
+    {
+      "imei": "869671079075642",
+      "codigo": "U002",
+      "patente": "AH507AT",
+      "cliente": "VIAP",
+      "marca": "Rinho",
+      "modelo": "SPIDER IoT"
+    },
+    {
+      "imei": "863457051886263",
+      "codigo": "R023",
+      "patente": "AE970FN",
+      "cliente": "VIAP",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "869671079084412",
+      "codigo": "B036",
+      "patente": "AG239JV",
+      "cliente": "Corralón El Mercado",
+      "marca": "Rinho",
+      "modelo": "SPIDER IoT"
+    },
+    {
+      "imei": "869671079085104",
+      "codigo": "R054",
+      "patente": "AG958VD",
+      "cliente": "VIAP",
+      "marca": "Rinho",
+      "modelo": "SPIDER IoT"
+    },
+    {
+      "imei": "863457051880019",
+      "codigo": "A041",
+      "patente": "AE918DS",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051887402",
+      "codigo": "C011",
+      "patente": "AG492QP",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051865523",
+      "codigo": "A047",
+      "patente": "AF617CT",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051880852",
+      "codigo": "R007",
+      "patente": "AG330PC",
+      "cliente": "VIAP",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051882411",
+      "codigo": "A042",
+      "patente": "AF065QF",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051881678",
+      "codigo": "E001",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051886198",
+      "codigo": "C001",
+      "patente": "DHH117",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051883641",
+      "codigo": "",
+      "patente": "",
+      "cliente": "",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051881629",
+      "codigo": "E011",
+      "patente": "AC376TL",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051885539",
+      "codigo": "I042",
+      "patente": "AF715PA",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051868014",
+      "codigo": "I037",
+      "patente": "AF617DE",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051883195",
+      "codigo": "C017",
+      "patente": "AE250VF",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051863981",
+      "codigo": "E605",
+      "patente": "NOL066",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051885513",
+      "codigo": "C041",
+      "patente": "AG256DF",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051876520",
+      "codigo": "A060",
+      "patente": "AG256GQ",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051881447",
+      "codigo": "A059",
+      "patente": "AG256GP",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051882338",
+      "codigo": "C056",
+      "patente": "AF277QH",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051881264",
+      "codigo": "B040",
+      "patente": "AG256EB",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051880373",
+      "codigo": "A007",
+      "patente": "OPS015",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051880381",
+      "codigo": "E006",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051887477",
+      "codigo": "K018",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051881843",
+      "codigo": "R058",
+      "patente": "AG239LM",
+      "cliente": "VIAP",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051879839",
+      "codigo": "B020",
+      "patente": "AE250YT",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051881371",
+      "codigo": "",
+      "patente": "",
+      "cliente": "",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "861971050002492",
+      "codigo": "R046",
+      "patente": "AG031LD",
+      "cliente": "VIAP",
+      "marca": "Queclink",
+      "modelo": "GV500MAP"
+    },
+    {
+      "imei": "861971050051143",
+      "codigo": "R044",
+      "patente": "AG031LA",
+      "cliente": "VIAP",
+      "marca": "Queclink",
+      "modelo": "GV500MGP"
+    },
+    {
+      "imei": "863457051881470",
+      "codigo": "B008",
+      "patente": "PGY336",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051881066",
+      "codigo": "A044",
+      "patente": "AF455PS",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051878450",
+      "codigo": "K045",
+      "patente": "K045",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051864971",
+      "codigo": "B037",
+      "patente": "AG256DG",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051883229",
+      "codigo": "I047",
+      "patente": "AG239KS",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051884979",
+      "codigo": "I041",
+      "patente": "AF715PD",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051886255",
+      "codigo": "E606",
+      "patente": "AF529IV",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051869939",
+      "codigo": "E005",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051880902",
+      "codigo": "I051",
+      "patente": "AG239KT",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051876199",
+      "codigo": "I048",
+      "patente": "AG239KV",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051876025",
+      "codigo": "I002",
+      "patente": "AB440XK",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051869384",
+      "codigo": "A057",
+      "patente": "AG030QR",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051884755",
+      "codigo": "A058",
+      "patente": "AG030QP",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051878815",
+      "codigo": "",
+      "patente": "",
+      "cliente": "",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051887030",
+      "codigo": "R072",
+      "patente": "AG239LN",
+      "cliente": "VIAP",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051881306",
+      "codigo": "E603",
+      "patente": "AE617ZS",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051884870",
+      "codigo": "I003",
+      "patente": "OJC324",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051867941",
+      "codigo": "A049",
+      "patente": "AF757QW",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051876298",
+      "codigo": "A032",
+      "patente": "AD895IH",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "862524060873912",
+      "codigo": "K033",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV350CEU"
+    },
+    {
+      "imei": "863457051872503",
+      "codigo": "A031",
+      "patente": "AD895IG",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051875381",
+      "codigo": "K029",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051862439",
+      "codigo": "A033",
+      "patente": "AD948NK",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051869756",
+      "codigo": "K022",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051865945",
+      "codigo": "K042",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051877403",
+      "codigo": "A029",
+      "patente": "AC592KF",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051623971",
+      "codigo": "A056",
+      "patente": "AG030QQ",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051876710",
+      "codigo": "B050",
+      "patente": "AI111JL",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051878211",
+      "codigo": "K034",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051866133",
+      "codigo": "C024",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051872479",
+      "codigo": "C025",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051877338",
+      "codigo": "A003",
+      "patente": "MDE513",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029101284",
+      "codigo": "C051",
+      "patente": "FZJ803",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051866059",
+      "codigo": "E607",
+      "patente": "NCT270",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051877999",
+      "codigo": "C028",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "862524060847775",
+      "codigo": "B048",
+      "patente": "AG958XU",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV350CEU"
+    },
+    {
+      "imei": "863457051877387",
+      "codigo": "A028",
+      "patente": "AC592GO",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051625265",
+      "codigo": "K024",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051878294",
+      "codigo": "B046",
+      "patente": "AH139JK",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051875670",
+      "codigo": "A005",
+      "patente": "NOL068",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051623989",
+      "codigo": "C050",
+      "patente": "OBL555",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051627717",
+      "codigo": "K012",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051629663",
+      "codigo": "A002",
+      "patente": "MSR388",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029882610",
+      "codigo": "A048",
+      "patente": "AF757QV",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867995030675071",
+      "codigo": "C010",
+      "patente": "MHW585",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300CAN"
+    },
+    {
+      "imei": "867995030698909",
+      "codigo": "A050",
+      "patente": "AF757QX",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300CAN"
+    },
+    {
+      "imei": "863457051622577",
+      "codigo": "C023",
+      "patente": "AE856IQ",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051865788",
+      "codigo": "K011",
+      "patente": "PC-411",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051610085",
+      "codigo": "A023",
+      "patente": "AB173LC",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051628657",
+      "codigo": "I036",
+      "patente": "AF617DD",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051619052",
+      "codigo": "C027",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051625380",
+      "codigo": "I008",
+      "patente": "AA462YE",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051629655",
+      "codigo": "I005",
+      "patente": "MWV015",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051628053",
+      "codigo": "A061",
+      "patente": "AG753UM",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051628327",
+      "codigo": "",
+      "patente": "",
+      "cliente": "",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051625190",
+      "codigo": "C008",
+      "patente": "AF277NH",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051628061",
+      "codigo": "C003",
+      "patente": "FYO127",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051580353",
+      "codigo": "A037",
+      "patente": "AE731UF",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "865284042000988",
+      "codigo": "I011",
+      "patente": "AB505EF",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV350MG"
+    },
+    {
+      "imei": "863457051626081",
+      "codigo": "C016",
+      "patente": "AE250VG",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051624433",
+      "codigo": "K019",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051628905",
+      "codigo": "B029",
+      "patente": "AC103CM",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051880563",
+      "codigo": "B042",
+      "patente": "AG560EE",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051877239",
+      "codigo": "A019",
+      "patente": "PKW196",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051872099",
+      "codigo": "B032",
+      "patente": "KRZ877",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "861971050054725",
+      "codigo": "R025",
+      "patente": "AF175TV",
+      "cliente": "VIAP",
+      "marca": "Queclink",
+      "modelo": "GV500MGP"
+    },
+    {
+      "imei": "861971050054931",
+      "codigo": "R031",
+      "patente": "AF455PI",
+      "cliente": "VIAP",
+      "marca": "Queclink",
+      "modelo": "GV500MGP"
+    },
+    {
+      "imei": "861971050051713",
+      "codigo": "R024",
+      "patente": "AF117GW",
+      "cliente": "VIAP",
+      "marca": "Queclink",
+      "modelo": "GV500MGP"
+    },
+    {
+      "imei": "861971050051036",
+      "codigo": "",
+      "patente": "",
+      "cliente": "",
+      "marca": "Queclink",
+      "modelo": "GV500MGP"
+    },
+    {
+      "imei": "861971050053206",
+      "codigo": "R021",
+      "patente": "AD800MH",
+      "cliente": "VIAP",
+      "marca": "Queclink",
+      "modelo": "GV500MGP"
+    },
+    {
+      "imei": "861971050050640",
+      "codigo": "R045",
+      "patente": "AG031LB",
+      "cliente": "VIAP",
+      "marca": "Queclink",
+      "modelo": "GV500MGP"
+    },
+    {
+      "imei": "869671079073936",
+      "codigo": "A063",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Rinho",
+      "modelo": "SPIDER IoT"
+    },
+    {
+      "imei": "863457051629515",
+      "codigo": "A006",
+      "patente": "MWV032",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "869671079087308",
+      "codigo": "U003",
+      "patente": "AH507AU",
+      "cliente": "VIAP",
+      "marca": "Rinho",
+      "modelo": "SPIDER IoT"
+    },
+    {
+      "imei": "861971050055946",
+      "codigo": "I009",
+      "patente": "AA687LY",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV500MGP"
+    },
+    {
+      "imei": "867162029889540",
+      "codigo": "B031",
+      "patente": "AC103BS",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051877130",
+      "codigo": "A021",
+      "patente": "AB053QK",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051875696",
+      "codigo": "A016",
+      "patente": "OYS777",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029889938",
+      "codigo": "B030",
+      "patente": "AF529JL",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051880530",
+      "codigo": "E007",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "861971050048917",
+      "codigo": "I013",
+      "patente": "AC936NN",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV500MGP"
+    },
+    {
+      "imei": "867162029897196",
+      "codigo": "I038",
+      "patente": "AF617DG",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029889631",
+      "codigo": "A046",
+      "patente": "AF617CS",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029892551",
+      "codigo": "B013",
+      "patente": "AC197AB",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029887122",
+      "codigo": "R032",
+      "patente": "AF455PG",
+      "cliente": "VIAP",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029911724",
+      "codigo": "",
+      "patente": "",
+      "cliente": "",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029888781",
+      "codigo": "E010",
+      "patente": "MBJ800",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029898467",
+      "codigo": "A039",
+      "patente": "AE758LU",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029897402",
+      "codigo": "A043",
+      "patente": "AF455PT",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029897907",
+      "codigo": "R010",
+      "patente": "AF617CA",
+      "cliente": "VIAP",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029889201",
+      "codigo": "B026",
+      "patente": "AF370ZF",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "869671079089791",
+      "codigo": "A064",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Rinho",
+      "modelo": "SPIDER IoT"
+    },
+    {
+      "imei": "863457051880910",
+      "codigo": "A022",
+      "patente": "AB053QL",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029892890",
+      "codigo": "K025",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029890944",
+      "codigo": "A040",
+      "patente": "AE918AL",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029891371",
+      "codigo": "B049",
+      "patente": "AI111JK",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029893112",
+      "codigo": "A036",
+      "patente": "AE731UE",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029882750",
+      "codigo": "C055",
+      "patente": "AE918AZ",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029884012",
+      "codigo": "B022",
+      "patente": "AE758LW",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029911682",
+      "codigo": "B019",
+      "patente": "AE250YU",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029883170",
+      "codigo": "B021",
+      "patente": "AE465BZ",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029884368",
+      "codigo": "C007",
+      "patente": "AE856GQ",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029886652",
+      "codigo": "A020",
+      "patente": "PKW197",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051623930",
+      "codigo": "A024",
+      "patente": "AB399EK",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "865284041977103",
+      "codigo": "E012",
+      "patente": "AC376SJ",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV350MG"
+    },
+    {
+      "imei": "865284042007926",
+      "codigo": "C006",
+      "patente": "AC400HI",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV350MA"
+    },
+    {
+      "imei": "863457051625851",
+      "codigo": "C052",
+      "patente": "AC592IM",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867995030169166",
+      "codigo": "K009",
+      "patente": "ZM-409",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300CAN"
+    },
+    {
+      "imei": "863457051863270",
+      "codigo": "K028",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029210549",
+      "codigo": "E602",
+      "patente": "AC471RH",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300CAN"
+    },
+    {
+      "imei": "867995030161585",
+      "codigo": "I043",
+      "patente": "ODO254",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300CAN"
+    },
+    {
+      "imei": "865284042020788",
+      "codigo": "B005",
+      "patente": "KIF672",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV350MG"
+    },
+    {
+      "imei": "863457051872115",
+      "codigo": "B047",
+      "patente": "AH139IG",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867995030174364",
+      "codigo": "I020",
+      "patente": "AE856GK",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300CAN"
+    },
+    {
+      "imei": "863457051866737",
+      "codigo": "A052",
+      "patente": "AC376TK",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051877502",
+      "codigo": "K017",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051870424",
+      "codigo": "I049",
+      "patente": "AG239KH",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "864802030765972",
+      "codigo": "K006",
+      "patente": "EX-406",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV55W"
+    },
+    {
+      "imei": "861971050055474",
+      "codigo": "I010",
+      "patente": "AG904NH",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV500MGP"
+    },
+    {
+      "imei": "862524060890759",
+      "codigo": "A004",
+      "patente": "NOL067",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV350CEU"
+    },
+    {
+      "imei": "864802030704708",
+      "codigo": "E009",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV55W"
+    },
+    {
+      "imei": "864802030703353",
+      "codigo": "E008",
+      "patente": "BH-450",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV55W"
+    },
+    {
+      "imei": "864802030676401",
+      "codigo": "K014",
+      "patente": "EX-414",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV55W"
+    },
+    {
+      "imei": "864802030676179",
+      "codigo": "K010",
+      "patente": "PC-410",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV55W"
+    },
+    {
+      "imei": "864802030762219",
+      "codigo": "K015",
+      "patente": "EX-415",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV55W"
+    },
+    {
+      "imei": "863457051624268",
+      "codigo": "I018",
+      "patente": "AE731UL",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029180114",
+      "codigo": "C015",
+      "patente": "AC592KE",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029177862",
+      "codigo": "A027",
+      "patente": "AC400ES",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029222122",
+      "codigo": "A035",
+      "patente": "AD948PY",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029181559",
+      "codigo": "C004",
+      "patente": "HAD135",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029178845",
+      "codigo": "",
+      "patente": "",
+      "cliente": "",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029182722",
+      "codigo": "B012",
+      "patente": "AC043SL",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051626867",
+      "codigo": "A025",
+      "patente": "AB678QL",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029096823",
+      "codigo": "B001",
+      "patente": "OLF094",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "867162029104866",
+      "codigo": "A038",
+      "patente": "AE758LV",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "863457051625166",
+      "codigo": "B035",
+      "patente": "AC124AC",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "56BDA48A41E548E68C2908BC00C305CF",
+      "codigo": "iPhone",
+      "patente": "",
+      "cliente": "Corralón El Mercado",
+      "marca": "Apple",
+      "modelo": "Iphone"
+    },
+    {
+      "imei": "867162029892726",
+      "codigo": "I050",
+      "patente": "AG239KJ",
+      "cliente": "Corralón El Mercado",
+      "marca": "Queclink",
+      "modelo": "GV300W"
+    },
+    {
+      "imei": "REM69bbed4432736",
+      "codigo": "D014",
+      "patente": "AG341EW",
+      "cliente": "Corralón El Mercado",
+      "marca": "Rinho",
+      "modelo": "SPIDER IoT"
+    },
+    {
+      "imei": "1888127cfdd078c6",
+      "codigo": "",
+      "patente": "",
+      "cliente": "",
+      "marca": "Android",
+      "modelo": "Android"
+    }
+  ]
+}
