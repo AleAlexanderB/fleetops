@@ -1,0 +1,14 @@
+# ── Node modules locales — Docker instala los suyos propios ──────
+node_modules
+client/node_modules
+server/node_modules
+
+# ── Archivos de desarrollo ────────────────────────────────────────
+client/dist
+**/.env
+**/*.log
+**/.DS_Store
+
+# ── Package locks — Docker genera los suyos con npm install ──────
+client/package-lock.json
+server/package-lock.json

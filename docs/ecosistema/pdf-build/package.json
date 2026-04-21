@@ -1,0 +1,9 @@
+{
+  "name": "pdf-build",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "marked": "^18.0.2"
+  }
+}
