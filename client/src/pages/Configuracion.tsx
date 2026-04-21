@@ -139,7 +139,7 @@ export default function Configuracion() {
     if (!nombre) { setDivError('El nombre no puede estar vacio'); return }
     if (nombre.length > 50) { setDivError('Maximo 50 caracteres'); return }
     if (divisiones.some(d => d.toLowerCase() === nombre.toLowerCase())) {
-      setDivError('Ya existe una division con ese nombre')
+      setDivError('Ya existe una unidad de negocio con ese nombre')
       return
     }
     setDivError('')
@@ -154,7 +154,7 @@ export default function Configuracion() {
 
   function handleAddSubdiv() {
     const nombre = newSubdiv.trim()
-    if (!activeDivForSub) { setSubdivError('Selecciona una division primero'); return }
+    if (!activeDivForSub) { setSubdivError('Selecciona una unidad de negocio primero'); return }
     if (!nombre) { setSubdivError('El nombre no puede estar vacio'); return }
     if (nombre.length > 50) { setSubdivError('Maximo 50 caracteres'); return }
     if (currentSubdivs.some(s => s.toLowerCase() === nombre.toLowerCase())) {
@@ -182,7 +182,7 @@ export default function Configuracion() {
       <div className="p-5 flex flex-col gap-5">
         <div>
           <h1 className="text-xl font-semibold">Configuracion</h1>
-          <p className="text-[13px] text-[#8B949E] mt-0.5">Gestion de divisiones y subdivisiones por empresa</p>
+          <p className="text-[13px] text-[#8B949E] mt-0.5">Gestión de unidades de negocio y subdivisiones por empresa</p>
         </div>
         <div className="flex items-center justify-center py-20">
           <div className="flex items-center gap-3 text-[#8B949E] text-[13px]">
@@ -199,10 +199,10 @@ export default function Configuracion() {
       <div className="p-5 flex flex-col gap-5">
         <div>
           <h1 className="text-xl font-semibold">Configuracion</h1>
-          <p className="text-[13px] text-[#8B949E] mt-0.5">Gestion de divisiones y subdivisiones por empresa</p>
+          <p className="text-[13px] text-[#8B949E] mt-0.5">Gestión de unidades de negocio y subdivisiones por empresa</p>
         </div>
         <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-5 py-4 text-[13px] text-red-400">
-          Error al cargar la configuracion de divisiones. Verifica la conexion con el servidor.
+          Error al cargar la configuracion de unidades de negocio. Verifica la conexion con el servidor.
         </div>
       </div>
     )
@@ -221,7 +221,7 @@ export default function Configuracion() {
           </div>
           <div>
             <h1 className="text-xl font-semibold">Configuracion</h1>
-            <p className="text-[13px] text-[#8B949E] mt-0.5">Divisiones y subdivisiones por empresa</p>
+            <p className="text-[13px] text-[#8B949E] mt-0.5">Unidades de negocio y subdivisiones por empresa</p>
           </div>
         </div>
 
@@ -246,10 +246,10 @@ export default function Configuracion() {
       <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-lg px-4 py-2.5">
         <Building2 size={14} className="text-blue-400" />
         <span className="text-[12px] text-blue-300 font-medium">
-          Configurando divisiones de: <span className="text-blue-200">{empresaActiva}</span>
+          Configurando unidades de negocio de: <span className="text-blue-200">{empresaActiva}</span>
         </span>
         <span className="ml-auto text-[11px] text-blue-400/60">
-          {divisiones.length} divisiones · {vehiculos.length} equipos
+          {divisiones.length} unidades de negocio · {vehiculos.length} equipos
         </span>
       </div>
 
@@ -266,7 +266,7 @@ export default function Configuracion() {
           <div className="px-5 py-4 border-b border-white/[0.07]">
             <div className="flex items-center gap-2">
               <Shield size={15} className="text-[#8B949E]" />
-              <h2 className="text-[14px] font-semibold text-[#E6EDF3]">Divisiones</h2>
+              <h2 className="text-[14px] font-semibold text-[#E6EDF3]">Unidades de negocio</h2>
               <span className="ml-auto text-[11px] text-[#6E7681]">{divisiones.length} total</span>
             </div>
           </div>
@@ -275,7 +275,7 @@ export default function Configuracion() {
           <div className="divide-y divide-white/[0.05]">
             {divisiones.length === 0 && (
               <div className="px-5 py-8 text-center text-[12px] text-[#6E7681]">
-                No hay divisiones configuradas para {empresaActiva}. Agrega la primera.
+                No hay unidades de negocio configuradas para {empresaActiva}. Agrega la primera.
               </div>
             )}
 
@@ -311,7 +311,7 @@ export default function Configuracion() {
                           ? 'text-[#6E7681] hover:text-red-400 hover:bg-red-500/10'
                           : 'text-[#6E7681]/30 cursor-not-allowed'
                       }`}
-                      title={canDelete ? 'Eliminar division' : `No se puede eliminar: ${count} equipos asignados`}
+                      title={canDelete ? 'Eliminar unidad de negocio' : `No se puede eliminar: ${count} equipos asignados`}
                     >
                       <X size={14} />
                     </button>
@@ -331,7 +331,7 @@ export default function Configuracion() {
             <div className="flex gap-2">
               <input
                 className="input flex-1"
-                placeholder="Nueva division..."
+                placeholder="Nueva unidad de negocio..."
                 value={newDiv}
                 onChange={e => { setNewDiv(e.target.value); setDivError('') }}
                 maxLength={50}
@@ -347,7 +347,7 @@ export default function Configuracion() {
               </button>
             </div>
             {divError && <p className="text-[11px] text-red-400 mt-1.5">{divError}</p>}
-            {addDiv.isError && <p className="text-[11px] text-red-400 mt-1.5">Error al agregar la division.</p>}
+            {addDiv.isError && <p className="text-[11px] text-red-400 mt-1.5">Error al agregar la unidad de negocio.</p>}
           </div>
         </div>
 
@@ -370,7 +370,7 @@ export default function Configuracion() {
                 ))}
               </select>
             ) : (
-              <p className="text-[11px] text-[#6E7681]">Crea una division primero para gestionar subdivisiones.</p>
+              <p className="text-[11px] text-[#6E7681]">Crea una unidad de negocio primero para gestionar subdivisiones.</p>
             )}
           </div>
 

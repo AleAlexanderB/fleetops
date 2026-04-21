@@ -39,7 +39,7 @@ function DivisionModal({ vehiculo, onClose }: DivisionModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
           <div>
-            <h2 className="text-[14px] font-semibold">Asignar división</h2>
+            <h2 className="text-[14px] font-semibold">Asignar unidad de negocio</h2>
             <p className="text-[11px] text-[#6E7681] mt-0.5">
               <span className="font-mono font-semibold">{vehiculo.codigo}</span>
               {vehiculo.patente && vehiculo.patente !== vehiculo.codigo &&
@@ -56,13 +56,13 @@ function DivisionModal({ vehiculo, onClose }: DivisionModalProps) {
 
           {/* División */}
           <label className="block">
-            <span className="text-[11px] text-[#8B949E] mb-1.5 block uppercase tracking-wider">División</span>
+            <span className="text-[11px] text-[#8B949E] mb-1.5 block uppercase tracking-wider">Unidad de negocio</span>
             <select
               className="input w-full"
               value={div}
               onChange={e => { setDiv(e.target.value); setSub('') }}
             >
-              <option value="">Sin división</option>
+              <option value="">Sin unidad de negocio</option>
               {divisiones.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
           </label>
@@ -82,7 +82,7 @@ function DivisionModal({ vehiculo, onClose }: DivisionModalProps) {
                 {subsParaDiv.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               <p className="text-[10px] text-[#6E7681] mt-1.5">
-                Subgrupo dentro de la división {div}
+                Subgrupo dentro de la unidad de negocio {div}
               </p>
             </label>
           )}
@@ -137,11 +137,11 @@ function EquipoRow({ v, isAdmin }: { v: Vehiculo; isAdmin: boolean }) {
           <div className="flex items-center gap-2">
             {v.division
               ? <span className={`badge ${divisionClass(v.division)}`}>{v.division}</span>
-              : <span className="text-[#6E7681] text-[11px]">Sin división</span>}
+              : <span className="text-[#6E7681] text-[11px]">Sin unidad de negocio</span>}
             <button
               onClick={() => setShowModal(true)}
               className="text-[#6E7681] hover:text-[#8B949E] transition-colors p-0.5 rounded"
-              title="Asignar división"
+              title="Asignar unidad de negocio"
             >
               <Pencil size={11} />
             </button>
@@ -235,7 +235,7 @@ export default function Equipos() {
   const filtered = vehiculos.filter(v => {
     if (filters.equipo.size > 0 && !filters.equipo.has(v.codigo || '—')) return false
     if (filters.grupo.size > 0 && !filters.grupo.has((v as any).grupoRedGps || '—')) return false
-    if (filters.division.size > 0 && !filters.division.has(v.division || 'Sin división')) return false
+    if (filters.division.size > 0 && !filters.division.has(v.division || 'Sin unidad de negocio')) return false
     if (filters.subgrupo.size > 0 && !filters.subgrupo.has(v.subgrupo || '—')) return false
     if (filters.chofer.size > 0 && !filters.chofer.has(v.chofer?.nombre || 'Sin asignar')) return false
     if (filters.estado.size > 0 && !filters.estado.has(estadoLabel(v.estado))) return false
@@ -286,7 +286,7 @@ export default function Equipos() {
           <p className="stat-value text-orange-400">{enTaller}</p>
         </div>
         <div className="stat-card">
-          <p className="stat-label">Sin división</p>
+          <p className="stat-label">Sin unidad de negocio</p>
           <p className="stat-value text-[#6E7681]">{sinDivision}</p>
           {sinDivision > 0 && (
             <p className="text-[10px] text-[#6E7681] mt-0.5">hacé click en ✎ para asignar</p>
@@ -309,7 +309,7 @@ export default function Equipos() {
                 <tr>
                   <th><ColumnFilter title="Equipo" values={uniqueValues(vehiculos, v => v.codigo || '—')} selected={filters.equipo} onChange={s => setFilter('equipo', s)} /></th>
                   <th><ColumnFilter title="Grupo RedGPS" values={uniqueValues(vehiculos, v => (v as any).grupoRedGps || '—')} selected={filters.grupo} onChange={s => setFilter('grupo', s)} /></th>
-                  <th><ColumnFilter title="División" values={uniqueValues(vehiculos, v => v.division || 'Sin división')} selected={filters.division} onChange={s => setFilter('division', s)} /></th>
+                  <th><ColumnFilter title="Unidad de negocio" values={uniqueValues(vehiculos, v => v.division || 'Sin unidad de negocio')} selected={filters.division} onChange={s => setFilter('division', s)} /></th>
                   <th><ColumnFilter title="Subgrupo" values={uniqueValues(vehiculos, v => v.subgrupo || '—')} selected={filters.subgrupo} onChange={s => setFilter('subgrupo', s)} /></th>
                   <th><ColumnFilter title="Chofer" values={uniqueValues(vehiculos, v => v.chofer?.nombre || 'Sin asignar')} selected={filters.chofer} onChange={s => setFilter('chofer', s)} /></th>
                   <th><ColumnFilter title="Estado" values={uniqueValues(vehiculos, v => estadoLabel(v.estado))} selected={filters.estado} onChange={s => setFilter('estado', s)} /></th>

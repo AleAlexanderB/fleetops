@@ -197,7 +197,7 @@ export default function ViajesLibres() {
             value={divisionFiltro}
             onChange={e => { setDivisionFiltro(e.target.value); setPage(1) }}
           >
-            <option value="">Todas las divisiones</option>
+            <option value="">Todas las unidades de negocio</option>
             {(divConfig?.divisiones ?? []).map(d => (
               <option key={d} value={d}>{d}</option>
             ))}
@@ -248,19 +248,19 @@ export default function ViajesLibres() {
       {(() => {
         const counts: Record<string, number> = {}
         for (const v of viajes) {
-          const d = v.division || 'Sin división'
+          const d = v.division || 'Sin unidad de negocio'
           counts[d] = (counts[d] || 0) + 1
         }
         const entries = Object.entries(counts).sort((a, b) => b[1] - a[1])
         if (entries.length === 0) return null
         return (
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] text-[#6E7681] mr-1">Por división:</span>
+            <span className="text-[11px] text-[#6E7681] mr-1">Por unidad de negocio:</span>
             {entries.map(([div, count]) => (
               <span
                 key={div}
-                className={`badge ${div === 'Sin división' ? 'badge-gray' : divisionClass(div)} text-[11px] px-2.5 py-1 cursor-pointer transition-opacity ${divisionFiltro && divisionFiltro !== div ? 'opacity-40' : ''}`}
-                onClick={() => setDivisionFiltro(prev => prev === div ? '' : (div === 'Sin división' ? '' : div))}
+                className={`badge ${div === 'Sin unidad de negocio' ? 'badge-gray' : divisionClass(div)} text-[11px] px-2.5 py-1 cursor-pointer transition-opacity ${divisionFiltro && divisionFiltro !== div ? 'opacity-40' : ''}`}
+                onClick={() => setDivisionFiltro(prev => prev === div ? '' : (div === 'Sin unidad de negocio' ? '' : div))}
                 title={`Filtrar por ${div}`}
               >
                 {div} <span className="font-bold ml-1">{count}</span>
@@ -282,7 +282,7 @@ export default function ViajesLibres() {
                   <tr>
                     <th><ColumnFilter title="Equipo" values={uniqueValues(allViajes, v => v.codigoEquipo ?? v.etiqueta ?? v.patente ?? '—')} selected={filters.equipo} onChange={s => setFilter('equipo', s)} /></th>
                     <th><ColumnFilter title="Chofer" values={uniqueValues(allViajes, v => v.chofer || 'Sin chofer')} selected={filters.chofer} onChange={s => setFilter('chofer', s)} /></th>
-                    <th><ColumnFilter title="División" values={uniqueValues(allViajes, v => v.division || '—')} selected={filters.division} onChange={s => setFilter('division', s)} /></th>
+                    <th><ColumnFilter title="Unidad de negocio" values={uniqueValues(allViajes, v => v.division || '—')} selected={filters.division} onChange={s => setFilter('division', s)} /></th>
                     <th><ColumnFilter title="Subgrupo" values={uniqueValues(allViajes, v => v.subgrupo || '—')} selected={filters.subgrupo} onChange={s => setFilter('subgrupo', s)} /></th>
                     <th><ColumnFilter title="Origen" values={uniqueValues(allViajes, v => v.geocercaOrigen?.nombre || '—')} selected={filters.origen} onChange={s => setFilter('origen', s)} /></th>
                     <th><ColumnFilter title="Destino" values={uniqueValues(allViajes, v => v.geocercaDestino?.nombre || '—')} selected={filters.destino} onChange={s => setFilter('destino', s)} /></th>

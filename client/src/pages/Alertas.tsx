@@ -105,14 +105,14 @@ export default function Alertas() {
     let list = alertas
     if (filters.tipo.size > 0)      list = list.filter(a => filters.tipo.has(a.tipoLabel))
     if (filters.equipo.size > 0)    list = list.filter(a => filters.equipo.has(a.etiqueta || ''))
-    if (filters.division.size > 0)  list = list.filter(a => filters.division.has(a.division || 'Sin division'))
+    if (filters.division.size > 0)  list = list.filter(a => filters.division.has(a.division || 'Sin unidad de negocio'))
     return list
   }, [alertas, filters])
 
   // Valores unicos para filtros
   const uTipo     = uniqueValues(alertas, a => a.tipoLabel)
   const uEquipo   = uniqueValues(alertas, a => a.etiqueta || '')
-  const uDivision = uniqueValues(alertas, a => a.division || 'Sin division')
+  const uDivision = uniqueValues(alertas, a => a.division || 'Sin unidad de negocio')
 
   function handleMarcarTodas() {
     marcarLeidas.mutate('all')
@@ -310,7 +310,7 @@ export default function Alertas() {
                 </th>
                 <th>
                   <ColumnFilter
-                    title="Division"
+                    title="Unidad de negocio"
                     values={uDivision}
                     selected={filters.division}
                     onChange={(s: Set<string>) => setFilter('division', s)}

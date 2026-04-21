@@ -1,6 +1,6 @@
 import { useState, useEffect, createContext, useContext } from 'react'
 import { NavLink, Outlet, Navigate } from 'react-router-dom'
-import { LayoutDashboard, Truck, Hexagon, ArrowUpRight, ClipboardList, BarChart2, Bell, Settings, ChevronDown, Building2, LogOut } from 'lucide-react'
+import { LayoutDashboard, Truck, Hexagon, ArrowUpRight, ClipboardList, BarChart2, Bell, Settings, ChevronDown, Building2, LogOut, Home } from 'lucide-react'
 import { useStatus, usePosicionesSSE, useEmpresas } from '../../hooks/hooks'
 import { useAuth } from '../../context/AuthContext'
 
@@ -91,8 +91,18 @@ export default function Layout() {
             </div>
           )}
 
+          {/* Botón Home → vuelve al hub principal */}
+          <a
+            href={window.location.origin.replace(/:\d+$/, '')}
+            title="Volver al inicio — AB Construcciones"
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/15 hover:bg-white/25 text-white font-medium transition-colors text-[12px] border border-white/20"
+          >
+            <Home size={14} />
+            <span>Inicio</span>
+          </a>
+
           {/* Status RedGPS */}
-          <div className="ml-auto flex items-center gap-2 text-[11px] text-white/70">
+          <div className="flex items-center gap-2 text-[11px] text-white/70">
             <div className={`w-2 h-2 rounded-full ${tokenOk ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
             {tokenOk
               ? (conectado ? 'RedGPS · SSE conectado' : 'RedGPS · reconectando...')

@@ -83,7 +83,7 @@ function InformeDia() {
               <div className="p-8 text-center text-[#6E7681] text-[13px]">Sin viajes detectados hoy</div>
             ) : (
               <table className="tbl">
-                <thead><tr><th>Equipo</th><th>Chofer</th><th>División</th><th>Viajes</th><th>Km</th></tr></thead>
+                <thead><tr><th>Equipo</th><th>Chofer</th><th>Unidad de negocio</th><th>Viajes</th><th>Km</th></tr></thead>
                 <tbody>
                   {filas.map(([eq, d]) => (
                     <tr key={eq}>
@@ -102,7 +102,7 @@ function InformeDia() {
 
         {/* Por división */}
         <div className="card">
-          <div className="card-header"><span className="card-title">Equipos por división</span></div>
+          <div className="card-header"><span className="card-title">Equipos por unidad de negocio</span></div>
           <div className="p-4 flex flex-col gap-4">
             {resumen && Object.keys(resumen).length > 0
               ? Object.entries(resumen).map(([div, data]) => {
@@ -131,7 +131,7 @@ function InformeDia() {
                   )
                 })
               : <div className="text-center text-[#6E7681] text-[13px] py-4">
-                  Sin divisiones asignadas — asigná en la pantalla Equipos (✎)
+                  Sin unidades de negocio asignadas — asigná en la pantalla Equipos (✎)
                 </div>
             }
           </div>
@@ -221,7 +221,7 @@ function InformeSinReportar() {
                 <tr>
                   <th>Equipo</th>
                   <th>Grupo RedGPS</th>
-                  <th>División</th>
+                  <th>Unidad de negocio</th>
                   <th>Último reporte</th>
                   <th>Días sin señal</th>
                   <th>Última posición</th>
@@ -318,7 +318,7 @@ function InformeHistorico() {
           onChange={e => setFiltEquipo(e.target.value.toUpperCase())}
         />
         <select className="input" value={filtDiv} onChange={e => setFiltDiv(e.target.value)}>
-          <option value="">Todas las divisiones</option>
+          <option value="">Todas las unidades de negocio</option>
           <option>Hormigón</option><option>Agregados</option><option>Premoldeados</option>
           <option>Obras</option><option>Logística</option><option>Corralón</option><option>Taller</option>
         </select>
@@ -342,7 +342,7 @@ function InformeHistorico() {
         ) : (
           <div className="overflow-x-auto">
             <table className="tbl">
-              <thead><tr><th>Equipo</th><th>Chofer</th><th>División</th><th>Viajes</th><th>Km</th></tr></thead>
+              <thead><tr><th>Equipo</th><th>Chofer</th><th>Unidad de negocio</th><th>Viajes</th><th>Km</th></tr></thead>
               <tbody>
                 {filas.map(([eq, d]) => (
                   <tr key={eq}>
@@ -508,7 +508,7 @@ function InformeRutas() {
           value={filtDiv}
           onChange={e => setFiltDiv(e.target.value)}
         >
-          <option value="">Todas las divisiones</option>
+          <option value="">Todas las unidades de negocio</option>
           {divisionesDisponibles.map(d => (
             <option key={d} value={d}>{d}</option>
           ))}
@@ -612,7 +612,7 @@ function InformeRutas() {
                                   <tr className="!bg-[#0D1117]">
                                     <th className="!text-[10px] pl-10">Equipo</th>
                                     <th className="!text-[10px]">Chofer</th>
-                                    <th className="!text-[10px]">Division</th>
+                                    <th className="!text-[10px]">Unidad de negocio</th>
                                     <th className="!text-[10px]">Inicio</th>
                                     <th className="!text-[10px]">Fin</th>
                                     <th className="!text-[10px]">Duracion</th>
@@ -758,7 +758,7 @@ function InformeLiquidacion() {
 
         <select value={division} onChange={e => setDivision(e.target.value)}
           className="bg-[#0D1117] border border-white/[0.07] rounded px-2.5 py-1.5 text-[12px] text-[#E6EDF3]">
-          <option value="">Todas las divisiones</option>
+          <option value="">Todas las unidades de negocio</option>
           {divisiones.map(d => <option key={d} value={d}>{d}</option>)}
         </select>
 
@@ -832,7 +832,7 @@ function InformeLiquidacion() {
                             <th className="p-2 pl-3">Fecha</th>
                             <th className="p-2">Equipo</th>
                             <th className="p-2">Patente</th>
-                            <th className="p-2">División</th>
+                            <th className="p-2">Unidad de negocio</th>
                             <th className="p-2">Origen</th>
                             <th className="p-2">Destino</th>
                             <th className="p-2 text-center">Duración</th>
@@ -998,7 +998,7 @@ function InformeRendimiento() {
           onChange={e => setDivision(e.target.value)}
           className="bg-[#0D1117] border border-white/[0.07] rounded px-2.5 py-1.5 text-[12px] text-[#E6EDF3]"
         >
-          <option value="">Todas las divisiones</option>
+          <option value="">Todas las unidades de negocio</option>
           {divisiones.map(d => <option key={d} value={d}>{d}</option>)}
         </select>
       </div>
@@ -1049,7 +1049,7 @@ function InformeRendimiento() {
                 <thead>
                   <tr className="text-left text-[#6E7681] text-[11px] uppercase tracking-wider bg-[#0D1117]/40">
                     <th className="p-2.5">Equipo</th>
-                    <th className="p-2.5">División</th>
+                    <th className="p-2.5">Unidad de negocio</th>
                     <th className="p-2.5 text-center">Viajes</th>
                     <th className="p-2.5 text-center">Km total</th>
                     <th className="p-2.5 text-center">Km prom.</th>
@@ -1115,7 +1115,7 @@ function InformeRendimiento() {
                 <thead>
                   <tr className="text-left text-[#6E7681] text-[11px] uppercase tracking-wider bg-[#0D1117]/40">
                     <th className="p-2.5">Chofer</th>
-                    <th className="p-2.5">Divisiones</th>
+                    <th className="p-2.5">Unidades de negocio</th>
                     <th className="p-2.5 text-center">Viajes</th>
                     <th className="p-2.5 text-center">Km total</th>
                     <th className="p-2.5 text-center">Km prom.</th>

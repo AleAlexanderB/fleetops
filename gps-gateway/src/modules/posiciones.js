@@ -12,11 +12,21 @@
  *      - "positions_update": snapshot completo de posiciones
  *      - "geocerca_entrada": cuando un equipo entra a una geocerca
  *      - "geocerca_salida": cuando un equipo sale de una geocerca
+ *
+ * PERSISTENCIA DE ESTADO:
+ *   El mapa _geocercaAnterior se guarda en disco cada vez que hay un cambio
+ *   y se restaura al arrancar. Esto evita perder transiciones al reiniciar.
  */
 import { getEmpresas }             from '../core/empresas.js';
 import { resolverVehiculo }         from './vehiculos.js';
 import { getGeocercaPorUbicacion }  from './geocercas.js';
 import { broadcast, getClientCount } from '../sse/broadcaster.js';
+import { writeFileSync, readFileSync, existsSync } from 'fs';
+import { join, dirname }            from 'path';
+import { fileURLToPath }            from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const STATE_FILE = join(__dirname, '../../geocerca-state.json');
 
 // Estado actual: idgps → posicion enriquecida
 const _posicionActual = new Map();
@@ -24,9 +34,52 @@ const _posicionActual = new Map();
 // Geocerca anterior por equipo: idgps → { id, nombre } | null
 const _geocercaAnterior = new Map();
 
+// En el primer ciclo sin estado persistido, solo inicializamos el mapa
+// sin disparar eventos — evita "entradas falsas" para los 80+ equipos en geocercas
+let _primerizoCiclo = false;
+
 function log(level, msg) {
   console[level](`[${new Date().toISOString()}] [Posiciones] ${msg}`);
 }
+
+// ── Persistencia de estado ──────────────────────────────────────────────────
+
+function _cargarEstado() {
+  try {
+    if (!existsSync(STATE_FILE)) {
+      // Sin archivo de estado previo — primer ciclo solo inicializa, no dispara eventos
+      _primerizoCiclo = true;
+      log('info', 'Sin estado previo de geocercas — primer ciclo solo inicializará');
+      return;
+    }
+    const raw  = readFileSync(STATE_FILE, 'utf8');
+    const data = JSON.parse(raw);
+    let count  = 0;
+    for (const [idgps, geo] of Object.entries(data)) {
+      _geocercaAnterior.set(idgps, geo || null);
+      count++;
+    }
+    log('info', `Estado geocercas restaurado: ${count} equipos desde ${STATE_FILE}`);
+  } catch (err) {
+    _primerizoCiclo = true;
+    log('warn', `No se pudo restaurar estado: ${err.message} — primer ciclo solo inicializará`);
+  }
+}
+
+function _guardarEstado() {
+  try {
+    const obj = {};
+    for (const [k, v] of _geocercaAnterior) obj[k] = v;
+    writeFileSync(STATE_FILE, JSON.stringify(obj), 'utf8');
+  } catch (err) {
+    log('warn', `No se pudo guardar estado: ${err.message}`);
+  }
+}
+
+// Restaurar al arrancar
+_cargarEstado();
+
+// ── Enriquecimiento de posición ─────────────────────────────────────────────
 
 function enriquecerPosicion(p, empresa) {
   // Campos reales de RedGPS /getdata: GpsIdentif, UnitPlate, Latitude, Longitude,
@@ -56,6 +109,7 @@ export async function pollPosiciones() {
   const empresas  = getEmpresas();
   const nuevas    = [];
   let enGeocerca  = 0;
+  let estadoCambio = false;
 
   for (const { nombre, client } of empresas) {
     try {
@@ -75,22 +129,30 @@ export async function pollPosiciones() {
 
         // Detectar entrada/salida
         const anterior = _geocercaAnterior.get(pos.idgps) ?? null;
-        const actual   = geo ? { id: geo.id, nombre: geo.nombre } : null;
+        const actual   = geo ? { id: String(geo.id), nombre: geo.nombre } : null;
 
         if (anterior?.id !== actual?.id) {
-          if (anterior) {
-            broadcast('geocerca_salida', {
-              equipo:   { idgps: pos.idgps, codigo: pos.codigo, patente: pos.patente, etiqueta: pos.etiqueta, empresa: nombre },
-              geocerca: anterior,
-            });
-          }
-          if (actual) {
-            broadcast('geocerca_entrada', {
-              equipo:   { idgps: pos.idgps, codigo: pos.codigo, patente: pos.patente, etiqueta: pos.etiqueta, empresa: nombre },
-              geocerca: actual,
-            });
+          // En primer ciclo sin estado previo: solo inicializar, no disparar eventos
+          if (!_primerizoCiclo) {
+            if (anterior) {
+              log('info', `← SALIDA: ${pos.etiqueta || pos.idgps} salió de "${anterior.nombre}"`);
+              broadcast('geocerca_salida', {
+                equipo:    { idgps: pos.idgps, codigo: pos.codigo, patente: pos.patente, etiqueta: pos.etiqueta, empresa: nombre },
+                geocerca:  anterior,
+                timestamp: pos.timestamp,
+              });
+            }
+            if (actual) {
+              log('info', `→ ENTRADA: ${pos.etiqueta || pos.idgps} entró a "${actual.nombre}"`);
+              broadcast('geocerca_entrada', {
+                equipo:    { idgps: pos.idgps, codigo: pos.codigo, patente: pos.patente, etiqueta: pos.etiqueta, empresa: nombre },
+                geocerca:  actual,
+                timestamp: pos.timestamp,
+              });
+            }
           }
           _geocercaAnterior.set(pos.idgps, actual);
+          estadoCambio = true;
         }
 
         _posicionActual.set(pos.idgps, pos);
@@ -100,6 +162,15 @@ export async function pollPosiciones() {
     } catch (err) {
       log('error', `[${nombre}] Error en pollPosiciones: ${err.message}`);
     }
+  }
+
+  // Guardar estado solo cuando hubo cambios (evitar escrituras innecesarias)
+  if (estadoCambio) _guardarEstado();
+
+  // Marcar que el primer ciclo terminó — de ahora en adelante disparar eventos normalmente
+  if (_primerizoCiclo) {
+    _primerizoCiclo = false;
+    log('info', `Primer ciclo completado — estado inicializado para ${_geocercaAnterior.size} equipos. Eventos activos.`);
   }
 
   log('info', `Total: ${nuevas.length} unidades | en geocerca: ${enGeocerca} | SSE clientes: ${getClientCount()}`);

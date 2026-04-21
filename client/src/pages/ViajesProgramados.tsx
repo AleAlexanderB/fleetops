@@ -305,9 +305,9 @@ function ViajeModal({ onClose, editando }: { onClose: () => void; editando?: Via
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-[11px] text-[#8B949E] mb-1 block">División</span>
+              <span className="text-[11px] text-[#8B949E] mb-1 block">Unidad de negocio</span>
               <select className="input w-full" value={f.division} onChange={e => { set('division', e.target.value); set('subgrupo', '') }}>
-                <option value="">Sin división</option>
+                <option value="">Sin unidad de negocio</option>
                 {validas?.divisiones.map(d => <option key={d}>{d}</option>)}
               </select>
             </label>
@@ -593,7 +593,7 @@ function TablaViajes({ viajes, onEdit, onCancel, showExpand = true }: {
             <th>#</th>
             <th><ColumnFilter title="Equipo" values={uniqueValues(viajes, v => v.codigoEquipo ?? v.etiqueta ?? '—')} selected={filters.equipo} onChange={s => setFilter('equipo', s)} /></th>
             <th><ColumnFilter title="Chofer" values={uniqueValues(viajes, v => v.chofer || 'Sin chofer')} selected={filters.chofer} onChange={s => setFilter('chofer', s)} /></th>
-            <th><ColumnFilter title="División" values={uniqueValues(viajes, v => v.division || '—')} selected={filters.division} onChange={s => setFilter('division', s)} /></th>
+            <th><ColumnFilter title="Unidad de negocio" values={uniqueValues(viajes, v => v.division || '—')} selected={filters.division} onChange={s => setFilter('division', s)} /></th>
             <th><ColumnFilter title="Ruta" values={uniqueValues(viajes, v => `${v.geocercaOrigenNombre} → ${v.geocercaDestinoNombre}`)} selected={filters.origen} onChange={s => setFilter('origen', s)} /></th>
             <th>Carga</th>
             <th>Fecha prog.</th>
@@ -1119,7 +1119,7 @@ function VistaPlanificacion({ empresa }: { empresa: string }) {
     // Agrupar por división
     const porDiv = new Map<string, any[]>()
     for (const v of sinViajes) {
-      const div = v.division || 'Sin división'
+      const div = v.division || 'Sin unidad de negocio'
       if (!porDiv.has(div)) porDiv.set(div, [])
       porDiv.get(div)!.push(v)
     }

@@ -20,7 +20,8 @@ export interface AuthContextType {
   logout: () => void
 }
 
-const TOKEN_KEY = 'fleetops_token'
+const TOKEN_KEY    = 'fleetops_token'
+const HUB_TOKEN_PARAM = 'hub_token'
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -49,7 +50,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // Validar token al montar
+  // Prioridad: 1) hub_token en URL (login desde el hub), 2) token guardado en localStorage
   useEffect(() => {
+    const params   = new URLSearchParams(window.location.search)
+    const hubToken = params.get(HUB_TOKEN_PARAM)
+
+    // Si llegó un token desde el hub, guardarlo y limpiar la URL
+    if (hubToken) {
+      localStorage.setItem(TOKEN_KEY, hubToken)
+      params.delete(HUB_TOKEN_PARAM)
+      const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '')
+      window.history.replaceState({}, '', newUrl)
+    }
+
     const stored = localStorage.getItem(TOKEN_KEY)
     if (!stored) {
       setIsLoading(false)

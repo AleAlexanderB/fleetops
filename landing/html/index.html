@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AB Construcciones — Acceso a Sistemas</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #f0f0f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 40px;
+      border-bottom: 1px solid #1e2130;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .logo-icon {
+      width: 44px; height: 44px;
+      background: #f97316;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 22px; color: #fff;
+    }
+    .logo-text {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #fff;
+    }
+    .header-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .user-avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: #1e3a5f;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: #7eb3f0;
+      border: 1px solid #2a4a7f;
+    }
+    .user-name {
+      font-size: 0.85rem;
+      color: #8b95a8;
+    }
+    .user-name strong {
+      color: #c9d1e0;
+      display: block;
+      font-size: 0.9rem;
+    }
+    .btn-logout {
+      background: transparent;
+      border: 1px solid #2a3040;
+      color: #6b778c;
+      padding: 6px 14px;
+      border-radius: 7px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-logout:hover {
+      border-color: #3b4a6b;
+      color: #c9d1e0;
+      background: #161b27;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      padding: 52px 20px 36px;
+    }
+    .hero h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+    .hero p {
+      color: #8b95a8;
+      font-size: 1rem;
+    }
+
+    /* ── Grid ── */
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 22px;
+      padding: 10px 40px 60px;
+      max-width: 1000px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: #161b27;
+      border: 1px solid #1e2538;
+      border-radius: 14px;
+      width: 240px;
+      padding: 30px 24px 26px;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+      display: block;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: #3b4a6b;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+    }
+    .card.disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .card-icon {
+      width: 52px; height: 52px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 18px;
+      font-size: 26px;
+    }
+    .icon-blue   { background: #1e3a5f; }
+    .icon-green  { background: #1a3d2b; }
+    .icon-orange { background: #3d2210; }
+    .icon-purple { background: #2d1d4a; }
+    .icon-teal   { background: #0f3040; }
+    .icon-red    { background: #3d1a1a; }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #e8edf5;
+      margin-bottom: 8px;
+    }
+    .card-desc {
+      font-size: 0.82rem;
+      color: #6b778c;
+      line-height: 1.5;
+    }
+
+    .badge-soon {
+      display: inline-block;
+      margin-top: 12px;
+      font-size: 0.7rem;
+      background: #1e2538;
+      color: #6b778c;
+      padding: 2px 8px;
+      border-radius: 20px;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: auto;
+      text-align: center;
+      padding: 20px;
+      color: #3a4255;
+      font-size: 0.78rem;
+      border-top: 1px solid #1a1f2e;
+    }
+
+    /* ══════════════════════════════════════════
+       LOGIN OVERLAY
+    ══════════════════════════════════════════ */
+    #login-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(8, 10, 16, 0.92);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    #login-overlay.hidden { display: none; }
+
+    .login-box {
+      background: #161b27;
+      border: 1px solid #1e2538;
+      border-radius: 18px;
+      padding: 44px 40px 36px;
+      width: 360px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    }
+    .login-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+      justify-content: center;
+    }
+    .login-logo-icon {
+      width: 40px; height: 40px;
+      background: #f97316;
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 18px; color: #fff;
+    }
+    .login-logo-text {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.04em;
+    }
+
+    .login-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .login-subtitle {
+      font-size: 0.83rem;
+      color: #6b778c;
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.78rem;
+      color: #8b95a8;
+      margin-bottom: 6px;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+    }
+    .form-group input {
+      width: 100%;
+      background: #0f1117;
+      border: 1px solid #1e2538;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      color: #e8edf5;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-group input:focus {
+      border-color: #2d4f8a;
+    }
+    .form-group input::placeholder { color: #3a4255; }
+
+    .btn-login {
+      width: 100%;
+      background: #1e4fab;
+      border: none;
+      border-radius: 9px;
+      padding: 12px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.15s, transform 0.1s;
+      letter-spacing: 0.02em;
+    }
+    .btn-login:hover { background: #2560cc; }
+    .btn-login:active { transform: scale(0.98); }
+    .btn-login:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .login-error {
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: #2d1a1a;
+      border: 1px solid #5a2020;
+      border-radius: 8px;
+      color: #f87171;
+      font-size: 0.82rem;
+      text-align: center;
+      display: none;
+    }
+    .login-error.visible { display: block; }
+  </style>
+</head>
+<body>
+
+  <!-- ══ LOGIN OVERLAY ══════════════════════════════════════════ -->
+  <div id="login-overlay">
+    <div class="login-box">
+      <div class="login-logo">
+        <div class="login-logo-icon">AB</div>
+        <span class="login-logo-text">AB CONSTRUCCIONES</span>
+      </div>
+      <div class="login-title">Iniciar sesión</div>
+      <div class="login-subtitle">Sistema Integrado de Gestión</div>
+      <form id="login-form" autocomplete="off">
+        <div class="form-group">
+          <label for="username">Usuario</label>
+          <input id="username" type="text" placeholder="Tu usuario" autocomplete="username" />
+        </div>
+        <div class="form-group">
+          <label for="password">Contraseña</label>
+          <input id="password" type="password" placeholder="Tu contraseña" autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn-login" id="btn-submit">Ingresar</button>
+        <div class="login-error" id="login-error"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══ HEADER ════════════════════════════════════════════════ -->
+  <header>
+    <div class="header-left">
+      <div class="logo-icon">AB</div>
+      <span class="logo-text">AB CONSTRUCCIONES</span>
+    </div>
+    <div class="header-user" id="header-user" style="display:none">
+      <div class="user-avatar" id="user-avatar">??</div>
+      <div class="user-name">
+        <strong id="user-nombre">-</strong>
+        Sistema Integrado
+      </div>
+      <button class="btn-logout" id="btn-logout">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <!-- ══ HERO ══════════════════════════════════════════════════ -->
+  <div class="hero">
+    <h1>ACCESO A SISTEMAS</h1>
+    <p>Seleccioná el módulo al que deseás acceder</p>
+  </div>
+
+  <!-- ══ CARDS ═════════════════════════════════════════════════ -->
+  <div class="grid">
+
+    <a class="card" id="card-fleetops" href="#" onclick="irA('fleetops'); return false;">
+      <div class="card-icon icon-blue">🚛</div>
+      <div class="card-title">FleetOPS</div>
+      <div class="card-desc">Control de flota GPS, viajes programados, geocercas y alertas en tiempo real.</div>
+    </a>
+
+    <a class="card" id="card-equipos" href="#" onclick="irA('equipos'); return false;">
+      <div class="card-icon icon-green">🔧</div>
+      <div class="card-title">Equipos</div>
+      <div class="card-desc">Gestión de maquinaria pesada, mantenimiento preventivo y control de horas.</div>
+    </a>
+
+    <a class="card disabled" href="#">
+      <div class="card-icon icon-purple">👥</div>
+      <div class="card-title">Recursos Humanos</div>
+      <div class="card-desc">Administración de personal, nóminas, asistencias y capacitaciones del equipo.</div>
+      <span class="badge-soon">Próximamente</span>
+    </a>
+
+    <a class="card disabled" href="#">
+      <div class="card-icon icon-orange">⛽</div>
+      <div class="card-title">Combustibles</div>
+      <div class="card-desc">Software para la gestión eficiente de combustibles y fichas vehiculares.</div>
+      <span class="badge-soon">Próximamente</span>
+    </a>
+
+    <a class="card disabled" href="#">
+      <div class="card-icon icon-teal">📋</div>
+      <div class="card-title">Gestor de Tareas</div>
+      <div class="card-desc">Gestión visual de proyectos y tareas mediante tableros Kanban colaborativos.</div>
+      <span class="badge-soon">Próximamente</span>
+    </a>
+
+    <a class="card disabled" href="#">
+      <div class="card-icon icon-red">🔩</div>
+      <div class="card-title">Taller</div>
+      <div class="card-desc">Control integral del taller: activos, repuestos y seguimiento de mantenimiento.</div>
+      <span class="badge-soon">Próximamente</span>
+    </a>
+
+  </div>
+
+  <footer>
+    © 2026 AB Construcciones — Sistema Integrado de Gestión
+  </footer>
+
+  <!-- ══ SCRIPT ═════════════════════════════════════════════════ -->
+  <script>
+    // ── URLs de los módulos (puerto directo para pasar el token via URL) ──
+    const FLEETOPS_URL = 'http://' + location.hostname + ':8077';
+    const EQUIPOS_URL  = 'http://' + location.hostname + ':8078';
+
+    // ── Clave de sesión en localStorage del hub ──
+    const SESSION_KEY = 'ab_hub_session';
+
+    // ── Estado ──
+    let session = null;
+
+    // ── Al cargar: verificar si hay sesión guardada ──
+    window.addEventListener('DOMContentLoaded', () => {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (raw) {
+        try {
+          session = JSON.parse(raw);
+          // Verificar que el token sigue siendo válido
+          validarToken(session.token)
+            .then(ok => {
+              if (ok) mostrarHub(session);
+              else cerrarSesion();
+            });
+        } catch {
+          cerrarSesion();
+        }
+      } else {
+        mostrarLogin();
+      }
+
+      document.getElementById('login-form').addEventListener('submit', onLogin);
+      document.getElementById('btn-logout').addEventListener('click', cerrarSesion);
+      document.getElementById('username').focus();
+    });
+
+    async function validarToken(token) {
+      try {
+        const res = await fetch(FLEETOPS_URL + '/api/auth/me', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        return res.ok;
+      } catch {
+        return false;
+      }
+    }
+
+    async function onLogin(e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const btn      = document.getElementById('btn-submit');
+      const errDiv   = document.getElementById('login-error');
+
+      if (!username || !password) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Ingresando...';
+      errDiv.classList.remove('visible');
+
+      try {
+        const res = await fetch(FLEETOPS_URL + '/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || 'Usuario o contraseña incorrectos');
+        }
+
+        session = { token: data.token, user: data.user };
+        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        mostrarHub(session);
+
+      } catch (err) {
+        errDiv.textContent = err.message;
+        errDiv.classList.add('visible');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Ingresar';
+      }
+    }
+
+    function mostrarHub(sess) {
+      // Ocultar login
+      document.getElementById('login-overlay').classList.add('hidden');
+
+      // Mostrar usuario en header
+      const nombre = sess.user?.nombre || sess.user?.username || 'Usuario';
+      const iniciales = nombre.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
+      document.getElementById('user-avatar').textContent = iniciales;
+      document.getElementById('user-nombre').textContent = nombre;
+      document.getElementById('header-user').style.display = 'flex';
+    }
+
+    function mostrarLogin() {
+      document.getElementById('login-overlay').classList.remove('hidden');
+      document.getElementById('header-user').style.display = 'none';
+    }
+
+    function cerrarSesion() {
+      localStorage.removeItem(SESSION_KEY);
+      session = null;
+      document.getElementById('password').value = '';
+      mostrarLogin();
+    }
+
+    // ── Navegar a un módulo pasando el token ──
+    function irA(modulo) {
+      if (!session) return;
+      const token = encodeURIComponent(session.token);
+
+      if (modulo === 'fleetops') {
+        window.location.href = FLEETOPS_URL + '/?hub_token=' + token;
+      } else if (modulo === 'equipos') {
+        window.location.href = EQUIPOS_URL + '/?hub_token=' + token;
+      }
+    }
+  </script>
+
+</body>
+</html>

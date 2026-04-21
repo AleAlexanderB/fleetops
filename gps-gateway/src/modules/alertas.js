@@ -23,9 +23,11 @@ export async function pollAlertas() {
 
   for (const { nombre, client } of empresas) {
     try {
+      // Formato de fecha para RedGPS: DD/MM/YYYY HH:MM:SS
+      const [anio, mes, dia] = hoy.split('-');
       const data = await client.post('/getAlerts', {
-        startdate: `${hoy} 00:00:00`,
-        enddate:   `${hoy} 23:59:59`,
+        fechaini: `${dia}/${mes}/${anio} 00:00:00`,
+        fechafin: `${dia}/${mes}/${anio} 23:59:59`,
       });
       const lista = Array.isArray(data) ? data : (data?.alerts || data?.data || []);
 

@@ -158,7 +158,7 @@ export default function Dashboard() {
       {resumen && (
         <div className="card">
           <div className="card-header justify-between">
-            <span className="card-title">Equipos por division</span>
+            <span className="card-title">Equipos por unidad de negocio</span>
             <span className="text-[11px] text-[#6E7681]">en tiempo real</span>
           </div>
           <div className="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -327,7 +327,7 @@ export default function Dashboard() {
           <div className="overflow-auto">
             <table className="tbl">
               <thead>
-                <tr><th>Equipo</th><th>Patente</th><th>Division</th><th>Estado</th><th>Ultima actualizacion</th></tr>
+                <tr><th>Equipo</th><th>Patente</th><th>Unidad de negocio</th><th>Estado</th><th>Ultima actualizacion</th></tr>
               </thead>
               <tbody>
                 {sinMovimiento.map(v => (
