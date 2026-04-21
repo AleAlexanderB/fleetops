@@ -13,6 +13,12 @@ client/.vite/
 .env.local
 .env.*.local
 
+# Clave SSH del VPS (NUNCA subir al repo)
+server_key
+
+# Credenciales y secretos (NUNCA subir al repo)
+SECRETOS.md
+
 # Logs del servidor
 server.log
 server.err
@@ -35,6 +41,33 @@ plan.md
 # Datos de BD locales (si los hubiera)
 data/mysql/
 
+# State runtime del gateway (se regenera al correr)
+gps-gateway/geocerca-state.json
+gps-gateway/*.bak
+
+# State/data runtime local (divisiones.json se persiste en volume Docker)
+/data/
+
+# Build output de Vite (outDir: '../public')
+/public/
+
+# Contexto para Claude Projects (no es código)
+PROYECTO_CONTEXTO.md
+
+# Prototipos sueltos en raíz
+/index.html
+
+# Backups sueltos
+docker-compose.yml.bak
+.env.bak
+
 # OS
 Thumbs.db
 .DS_Store
+
+# Output de la generación de PDFs de los docs del ecosistema
+docs/ecosistema/pdf/
+docs/ecosistema/pdf-build/node_modules/
+docs/ecosistema/pdf-build/*.html
+docs/ecosistema/pdf-build/package-lock.json
+docs/ecosistema/pdf-build/manifest.json
