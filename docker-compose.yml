@@ -1,9 +1,14 @@
 # ══════════════════════════════════════════════════════════════════
-# FleetOPS — docker-compose.yml (monorepo)
-# AB Construcciones · Hyper-V / Windows Server 2019
+# FleetOPS — docker-compose.yml
+# AB Construcciones
 #
-# Uso inicial:
-#   1. cp .env.example .env  →  completar credenciales RedGPS + IP
+# Prerequisito: crear la red del ecosistema una sola vez y levantar
+# primero el Integration Gateway:
+#   docker network create ab-ecosystem
+#   (en el repo integration-gateway)  docker compose up -d
+#
+# Uso:
+#   1. cp .env.example .env  →  completar credenciales + GATEWAY_URL
 #   2. docker compose build
 #   3. docker compose up -d
 #
@@ -42,12 +47,17 @@ services:
     ports:
       - "8077:8077"
     env_file: .env
+    environment:
+      GATEWAY_URL: ${GATEWAY_URL:-http://integration-gateway:3100}
     volumes:
       # divisiones.json persiste entre reinicios
       - fleetops_data:/app/data
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - default
+      - ab-ecosystem
     restart: unless-stopped
     logging:
       driver: json-file
@@ -56,31 +66,6 @@ services:
         max-file: "3"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8077/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-
-  gps-gateway:
-    build:
-      context: ./gps-gateway
-      dockerfile: Dockerfile
-    image: gps-gateway:latest
-    container_name: fleetops_gps_gateway
-    ports:
-      - "3100:3100"
-    env_file: .env
-    environment:
-      GATEWAY_API_KEY: ${GATEWAY_API_KEY:-}
-      GATEWAY_PORT: 3100
-    restart: unless-stopped
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3100/api/status"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -106,6 +91,10 @@ services:
       retries: 5
       start_period: 30s
     restart: unless-stopped
+
+networks:
+  ab-ecosystem:
+    external: true
 
 volumes:
   mysql_data:
