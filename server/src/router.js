@@ -262,6 +262,38 @@ router.get('/webhook/test', (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
+// SSO + Webhook con Hub AB — SIN authMiddleware (2026-04-23)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// /sso?token=xxx — guarda el JWT del Hub en localStorage y redirige a /
+router.get('/sso', (req, res) => {
+  const token = req.query.token || '';
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  res.send(`<!doctype html><html><head><meta charset="utf-8"><title>Entrando a FleetOPS…</title></head><body>
+    <p style="font-family:sans-serif;color:#555;text-align:center;margin-top:40px">Entrando a FleetOPS…</p>
+    <script>
+      try {
+        const t = ${JSON.stringify(token)};
+        if (t) localStorage.setItem('fleetops_token', t);
+      } catch (e) {}
+      window.location.replace('/');
+    </script>
+  </body></html>`);
+});
+
+// Webhook de invalidacion de cache — consumido por el Hub AB
+router.post('/cache-invalidate', (req, res) => {
+  const key = req.headers['x-webhook-key'];
+  if (!process.env.WEBHOOK_API_KEY || key !== process.env.WEBHOOK_API_KEY) {
+    return res.status(401).json({ ok: false, error: 'Webhook key invalida' });
+  }
+  const { entidad, entidadId, accion, timestamp } = req.body || {};
+  console.log(`[${new Date().toISOString()}] [Webhook] ✓ invalidate ${entidad}${entidadId != null ? '#' + entidadId : ''} ${accion || ''}`);
+  // Fase C+1: invalidar caches especificos segun entidad
+  res.json({ ok: true, received: { entidad, entidadId, accion, timestamp } });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
 // MIDDLEWARE — autenticacion global para todas las rutas siguientes
 // ══════════════════════════════════════════════════════════════════════════════
 

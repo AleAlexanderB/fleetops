@@ -71,3 +71,4 @@ docs/ecosistema/pdf-build/node_modules/
 docs/ecosistema/pdf-build/*.html
 docs/ecosistema/pdf-build/package-lock.json
 docs/ecosistema/pdf-build/manifest.json
+rescate-hub-sso-vps.patch

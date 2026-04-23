@@ -1,18 +1,19 @@
 # ══════════════════════════════════════════════════════════════════
 # FleetOPS — docker-compose.yml
-# AB Construcciones
+# AB Construcciones · DigitalOcean VPS
 #
-# Prerequisito: crear la red del ecosistema una sola vez y levantar
-# primero el Integration Gateway:
-#   docker network create ab-ecosystem
-#   (en el repo integration-gateway)  docker compose up -d
+# Prerequisitos:
+#   1. Red compartida del ecosistema (crear una vez):
+#        docker network create ab-ecosystem
+#   2. Integration Gateway corriendo primero (en /opt/integration-gateway)
 #
 # Uso:
-#   1. cp .env.example .env  →  completar credenciales + GATEWAY_URL
-#   2. docker compose build
-#   3. docker compose up -d
+#   docker compose up -d
 #
-# Acceso: http://IP_SERVIDOR:8077
+# Acceso:
+#   - FleetOPS:  http://IP_SERVIDOR:8077
+#   - Activos:   http://IP_SERVIDOR:8078
+#   - Hub:       http://IP_SERVIDOR:80
 # ══════════════════════════════════════════════════════════════════
 
 services:
@@ -92,11 +93,60 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+
+  equipos:
+    build:
+      context: ./equipos
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${EQUIPOS_VITE_API_URL:-}
+    image: equipos:latest
+    container_name: equipos_app
+    ports:
+      - "8078:8078"
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 8078
+      DATABASE_URL: mysql://${EQUIPOS_DB_USER:-equipos_user}:${EQUIPOS_DB_PASSWORD:-equipos_2024}@fleetops_db:3306/fleetops
+      JWT_SECRET: ${EQUIPOS_JWT_SECRET:-${JWT_SECRET:-fleetops_jwt_change_me}}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
+      GATEWAY_URL: http://integration-gateway:3100
+      GATEWAY_API_KEY: ${GATEWAY_API_KEY:-}
+      FLEETOPS_URL: http://fleetops_app:8077
+      FLEETOPS_API_KEY: ${API_KEY:-}
+      CINTELINK_URL: ${CINTELINK_URL:-https://cintelink.com/api/v2}
+      CINTELINK_TOKEN: ${CINTELINK_TOKEN:-}
+      # Hub AB SSO (2026-04-23)
+      HUB_JWT_SECRET: ${HUB_JWT_SECRET:-}
+      WEBHOOK_API_KEY: ${WEBHOOK_API_KEY:-}
+    volumes:
+      - equipos_uploads:/app/uploads
+    networks:
+      - default
+      - ab-ecosystem
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8078/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 networks:
   ab-ecosystem:
     external: true
 
 volumes:
+  equipos_uploads:
+    driver: local
   mysql_data:
     driver: local
   fleetops_data:
