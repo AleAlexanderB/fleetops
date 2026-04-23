@@ -11,6 +11,32 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { query } from '../../database/database.js';
 
+// ── SSO con Hub AB ─────────────────────────────────────────────────────────
+// Parche 2026-04-23: aceptar JWTs emitidos por el Hub AB, además de los
+// tokens locales de fleetops_usuarios (comportamiento aditivo, no destructivo).
+const HUB_JWT_SECRET = process.env.HUB_JWT_SECRET || null;
+
+function verifyHubToken(token) {
+  if (!HUB_JWT_SECRET) return null;
+  try {
+    const decoded = jwt.verify(token, HUB_JWT_SECRET);
+    const rolEnFleetops = decoded?.permisos?.fleetops;
+    if (!rolEnFleetops) return null;
+    const rol = rolEnFleetops === 'admin' ? 'admin' : 'empresa';
+    return {
+      id:       decoded.userId,
+      username: decoded.email,
+      rol,
+      empresa:  null,
+      nombre:   decoded.email?.split('@')[0] || 'Hub user',
+      _hub:     true,
+    };
+  } catch {
+    return null;
+  }
+}
+
+
 const JWT_SECRET = process.env.JWT_SECRET || 'fleetops-secret-key-change-in-production';
 const JWT_EXPIRES = '24h';
 
@@ -121,13 +147,18 @@ export function authMiddleware(req, res, next) {
     token = req.query.token;
   }
 
-  // 3. Si hay token JWT, verificar
+  // 3. Si hay token JWT, verificar (primero local, despues Hub AB)
   if (token) {
     try {
       const decoded = verifyToken(token);
       req.user = decoded;
       return next();
-    } catch (err) {
+    } catch (errLocal) {
+      const hubUser = verifyHubToken(token);
+      if (hubUser) {
+        req.user = hubUser;
+        return next();
+      }
       return res.status(401).json({ ok: false, error: 'Token invalido o expirado' });
     }
   }

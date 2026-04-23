@@ -93,7 +93,7 @@ export default function Layout() {
 
           {/* Botón Home → vuelve al hub principal */}
           <a
-            href={window.location.origin.replace(/:\d+$/, '')}
+            href={window.location.origin.replace(/:\d+$/, ':3200')}
             title="Volver al inicio — AB Construcciones"
             className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/15 hover:bg-white/25 text-white font-medium transition-colors text-[12px] border border-white/20"
           >
