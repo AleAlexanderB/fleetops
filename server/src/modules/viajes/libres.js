@@ -30,6 +30,12 @@ let   _nextId    = 1;
 // Tracker de distancia por GPS para viajes en curso
 const _distTracker = new Map();  // codigo → { lastLat, lastLng, totalKm }
 
+// Hook que se dispara cuando un viaje libre se confirma como completado.
+// Lo usa programados.js para vincular reactivamente sin depender de que
+// alguien consulte la pantalla.
+let _onViajeCompletado = null;
+export function registrarOnViajeCompletado(cb) { _onViajeCompletado = cb; }
+
 function log(level, msg) {
   console[level](`[${new Date().toISOString()}] [ViajesLibres] ${msg}`);
 }
@@ -250,6 +256,14 @@ async function _confirmarLlegada(clave, geocerca, tsEntrada) {
         geocerca.idCerca, geocerca.nombre,
         viaje.kmRecorridos, viaje.duracionMin
       ).catch(err => log('warn', `Error al actualizar ruta: ${err.message}`));
+    }
+
+    // Hook reactivo: notificar a programados.js que este viaje quedó cerrado
+    // para que vincule el programado correspondiente sin depender de que
+    // alguien abra la pantalla.
+    if (_onViajeCompletado) {
+      Promise.resolve(_onViajeCompletado(viaje))
+        .catch(err => log('warn', `hook onViajeCompletado: ${err.message}`));
     }
   } else {
     log('info', `Parada inicial confirmada: ${clave} en "${geocerca.nombre}"`);

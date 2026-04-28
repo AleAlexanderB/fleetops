@@ -6,7 +6,7 @@
  */
 
 import { db }                            from '../../database/database.js';
-import { getViajesEnCurso, getViajesCompletados, getPosicionActual } from './libres.js';
+import { getViajesEnCurso, getViajesCompletados, getPosicionActual, registrarOnViajeCompletado } from './libres.js';
 import { obtenerDistanciaRuta, actualizarRutaReal, getDistanciaConocida, getTiempoEstimado } from './rutas.js';
 import { getGeocercas } from '../redgps/geocercas.js';
 import { getVehiculoPorCodigo, getVehiculoPorPatente } from '../redgps/vehiculos.js';
@@ -44,9 +44,147 @@ export async function initViajesProgramados() {
     _nextId = nextId;
 
     log('info', `Restaurados: ${rows.length} viajes programados`);
+
+    // Repesca: vincular programados huérfanos con viajes libres ya cerrados
+    // en DB. Cubre los casos donde nadie abrió la pantalla de programados
+    // mientras el viaje libre estaba en memoria.
+    await repescarVinculosFaltantes();
   } catch (err) {
     log('error', `Error al cargar viajes programados: ${err.message}`);
   }
+
+  // Hook reactivo: cuando un viaje libre se cierra, intentar vincular en caliente
+  registrarOnViajeCompletado(vincularProgramadoConLibre);
+}
+
+const TOLERANCIA_MATCH_MIN = 4 * 60;  // ±4h
+
+async function repescarVinculosFaltantes() {
+  const pool = db();
+  if (!pool) return;
+
+  const huerfanos = [..._cache.values()].filter(vp =>
+    !vp.cancelado && !vp.viajeLibreId && vp.codigoEquipo && vp.geocercaOrigenId
+  );
+  if (huerfanos.length === 0) return;
+
+  let vinculados = 0;
+  for (const vp of huerfanos) {
+    const codigo = (vp.codigoEquipo || vp.patente || '').toUpperCase();
+    const tsProgramado = `${vp.fechaInicio} ${vp.horaInicio}`;
+    try {
+      const [filas] = await pool.execute(
+        `SELECT id_viaje_libre, timestamp_inicio, timestamp_fin, duracion_min,
+                km_recorridos, id_geocerca_destino
+           FROM fleetops_viajes_libres
+          WHERE UPPER(codigo_equipo) = ?
+            AND DATE(timestamp_inicio) = ?
+            AND id_geocerca_origen = ?
+            AND ABS(TIMESTAMPDIFF(MINUTE, timestamp_inicio, ?)) <= ?
+          ORDER BY (id_geocerca_destino = ?) DESC,
+                   ABS(TIMESTAMPDIFF(MINUTE, timestamp_inicio, ?)) ASC
+          LIMIT 1`,
+        [codigo, vp.fechaInicio, vp.geocercaOrigenId,
+         tsProgramado, TOLERANCIA_MATCH_MIN,
+         vp.geocercaDestinoId, tsProgramado]
+      );
+      if (filas.length === 0) continue;
+
+      const vl = filas[0];
+      const vlInicio = vl.timestamp_inicio instanceof Date
+        ? vl.timestamp_inicio
+        : new Date(vl.timestamp_inicio);
+      const programadoMs = new Date(`${vp.fechaInicio}T${vp.horaInicio}-03:00`).getTime();
+      const diffMin = Math.round((vlInicio.getTime() - programadoMs) / 60000);
+
+      vp.viajeLibreId    = vl.id_viaje_libre;
+      vp.salidaReal      = vlInicio.toISOString();
+      vp.llegadaReal     = vl.timestamp_fin
+        ? (vl.timestamp_fin instanceof Date ? vl.timestamp_fin : new Date(vl.timestamp_fin)).toISOString()
+        : null;
+      vp.duracionRealMin = vl.duracion_min;
+      vp.demoraSalidaMin = diffMin;
+      vp.kmReales        = vl.km_recorridos != null ? parseFloat(vl.km_recorridos) : null;
+      vp._viajeRealPersistido = true;
+
+      await actualizarEnDB(vp.id, {
+        viajeLibreId:    vp.viajeLibreId,
+        salidaReal:      vp.salidaReal,
+        llegadaReal:     vp.llegadaReal,
+        duracionRealMin: vp.duracionRealMin,
+        demoraSalidaMin: vp.demoraSalidaMin,
+        kmReales:        vp.kmReales,
+      });
+      vinculados++;
+    } catch (err) {
+      log('warn', `Repesca falló para programado #${vp.id}: ${err.message}`);
+    }
+  }
+  log('info', `Repesca: ${vinculados}/${huerfanos.length} programados vinculados con viajes libres existentes`);
+}
+
+/**
+ * Vincula reactivamente un viaje libre recién cerrado con su programado
+ * correspondiente (mismo equipo, mismo día, mismo origen, dentro de
+ * tolerancia temporal). Se invoca desde el hook de libres.js cuando se
+ * confirma una llegada.
+ */
+export async function vincularProgramadoConLibre(viajeLibre) {
+  if (!viajeLibre || !viajeLibre.timestampInicio) return null;
+  const fecha  = String(viajeLibre.timestampInicio).slice(0, 10);
+  const codigo = (viajeLibre.codigoEquipo || viajeLibre.codigo || viajeLibre.patente || '').toUpperCase();
+  const idOrigen = viajeLibre.geocercaOrigen?.idCerca;
+  if (!fecha || !codigo || !idOrigen) return null;
+
+  const programadoMs = new Date(viajeLibre.timestampInicio).getTime();
+  const TOLERANCIA_MS = TOLERANCIA_MATCH_MIN * 60 * 1000;
+
+  const candidatos = [..._cache.values()].filter(vp => {
+    if (vp.cancelado) return false;
+    if (vp.fechaInicio !== fecha) return false;
+    if (vp.viajeLibreId && vp.viajeLibreId !== viajeLibre.id) return false;
+    const vpKey = (vp.codigoEquipo || vp.patente || '').toUpperCase();
+    if (vpKey !== codigo) return false;
+    if (vp.geocercaOrigenId !== idOrigen) return false;
+    const vpMs = new Date(`${vp.fechaInicio}T${vp.horaInicio}-03:00`).getTime();
+    return Math.abs(vpMs - programadoMs) <= TOLERANCIA_MS;
+  });
+
+  if (candidatos.length === 0) return null;
+
+  const idDestino = viajeLibre.geocercaDestino?.idCerca;
+  candidatos.sort((a, b) => {
+    const aDest = a.geocercaDestinoId === idDestino ? 1 : 0;
+    const bDest = b.geocercaDestinoId === idDestino ? 1 : 0;
+    if (aDest !== bDest) return bDest - aDest;
+    const aMs = new Date(`${a.fechaInicio}T${a.horaInicio}-03:00`).getTime();
+    const bMs = new Date(`${b.fechaInicio}T${b.horaInicio}-03:00`).getTime();
+    return Math.abs(aMs - programadoMs) - Math.abs(bMs - programadoMs);
+  });
+
+  const vp = candidatos[0];
+  const inicioVpMs = new Date(`${vp.fechaInicio}T${vp.horaInicio}-03:00`).getTime();
+  const diffMin = Math.round((programadoMs - inicioVpMs) / 60000);
+
+  vp.viajeLibreId    = viajeLibre.id;
+  vp.salidaReal      = viajeLibre.timestampInicio;
+  vp.llegadaReal     = viajeLibre.timestampFin || null;
+  vp.duracionRealMin = viajeLibre.duracionMin ?? null;
+  vp.demoraSalidaMin = diffMin;
+  vp.kmReales        = viajeLibre.kmRecorridos ?? null;
+  vp._viajeRealPersistido = true;
+
+  await actualizarEnDB(vp.id, {
+    viajeLibreId:    vp.viajeLibreId,
+    salidaReal:      vp.salidaReal,
+    llegadaReal:     vp.llegadaReal,
+    duracionRealMin: vp.duracionRealMin,
+    demoraSalidaMin: vp.demoraSalidaMin,
+    kmReales:        vp.kmReales,
+  });
+
+  log('info', `Vinculado reactivo: programado #${vp.id} ↔ libre #${viajeLibre.id} (${codigo}, demora ${diffMin}min)`);
+  return vp.id;
 }
 
 // ── Mapeo DB ↔ objeto ─────────────────────────────────────────────────────────
