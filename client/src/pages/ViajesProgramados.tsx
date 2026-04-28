@@ -804,7 +804,9 @@ function TablaViajes({ viajes, onEdit, onCancel, showExpand = true }: {
 
 function VistaHoy({ onEdit, onNuevo, onCancel, empresa }: { onEdit: (v: ViajeProg) => void; onNuevo: () => void; onCancel?: (id: number) => void; empresa: string }) {
   const todayStr = hoy()
-  const params: Record<string, string> = { fecha: todayStr }
+  // incluirEnCurso=true: un viaje que arrancó ayer y todavía no llegó a destino
+  // sigue siendo trabajo activo del día — debe verse en la pestaña "Hoy".
+  const params: Record<string, string> = { fecha: todayStr, incluirEnCurso: 'true' }
   if (empresa) params.empresa = empresa
   const { data, isLoading } = useViajesProgramadosDia(params)
 
@@ -1401,7 +1403,7 @@ export default function ViajesProgramados() {
   const [cancelModalId, setCancelModalId] = useState<number | null>(null)
 
   const todayStr = hoy()
-  const hoyParams: Record<string, string> = { fecha: todayStr }
+  const hoyParams: Record<string, string> = { fecha: todayStr, incluirEnCurso: 'true' }
   if (empresa) hoyParams.empresa = empresa
   const { data: dataHoy } = useViajesProgramadosDia(hoyParams)
   const resumenHoy = dataHoy?.resumen

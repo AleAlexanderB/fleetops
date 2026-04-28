@@ -437,6 +437,36 @@ export function getPosicionActual(codigo) {
   return { lat: tracker.lastLat, lng: tracker.lastLng, kmRecorridos: tracker.totalKm };
 }
 
+/**
+ * Km recorridos por un equipo en su viaje libre actualmente en curso.
+ * Prioridad: odómetro del camión (más exacto). Si no hay odómetro válido
+ * o el camión no lo expone, fallback al tracker GPS haversine acumulado.
+ * @returns {number|null} km recorridos en el viaje en curso, o null si no hay viaje.
+ */
+export function getKmRecorridosEnCurso(codigo) {
+  if (!codigo) return null;
+  const viaje = _enCurso.get(codigo);
+  if (!viaje) return null;
+
+  // 1) Odómetro: el camión expone km del tablero
+  if (viaje.odometroInicio != null) {
+    const odoFin = getOdometro(codigo);
+    if (odoFin != null) {
+      let km = parseFloat(odoFin) - parseFloat(viaje.odometroInicio);
+      if (Math.abs(km) > 100000) km = km / 1000;  // detectar metros
+      if (km > 0 && km < 10000) return Math.round(km * 10) / 10;
+    }
+  }
+
+  // 2) Fallback: tracker GPS haversine acumulado
+  const tracker = _distTracker.get(codigo);
+  if (tracker && tracker.totalKm > 0.05) {
+    return Math.round(tracker.totalKm * 10) / 10;
+  }
+
+  return null;
+}
+
 // ── Getters ───────────────────────────────────────────────────────────────────
 
 export function getViajesEnCurso() {

@@ -873,8 +873,11 @@ router.get('/viajes/libres/historico', requireEmpresa, async (req, res) => {
 // ── Viajes programados ───────────────────────────────────────────────────────
 
 router.get('/viajes/programados', requireEmpresa, (req, res) => {
-  const { fecha, patente, codigoEquipo, division, estado, empresa } = req.query;
-  const filters = { fecha, patente, codigoEquipo, division, estado, empresa };
+  const { fecha, patente, codigoEquipo, division, estado, empresa, incluirEnCurso } = req.query;
+  const filters = {
+    fecha, patente, codigoEquipo, division, estado, empresa,
+    incluirEnCurso: incluirEnCurso === 'true' || incluirEnCurso === '1',
+  };
   res.json({
     ok:      true,
     resumen: getResumenProgramados(filters),

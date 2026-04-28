@@ -6,7 +6,7 @@
  */
 
 import { db }                            from '../../database/database.js';
-import { getViajesEnCurso, getViajesCompletados, getPosicionActual, registrarOnViajeCompletado } from './libres.js';
+import { getViajesEnCurso, getViajesCompletados, getPosicionActual, getKmRecorridosEnCurso, registrarOnViajeCompletado } from './libres.js';
 import { obtenerDistanciaRuta, actualizarRutaReal, getDistanciaConocida, getTiempoEstimado } from './rutas.js';
 import { getGeocercas } from '../redgps/geocercas.js';
 import { getVehiculoPorCodigo, getVehiculoPorPatente } from '../redgps/vehiculos.js';
@@ -494,25 +494,21 @@ function calcProgreso(vp) {
   // Viaje completado → 100%
   if (vp.llegadaReal) return 100;
 
-  // Viaje en curso → calcular por km recorridos vs distancia estimada
+  // Viaje en curso → km recorridos (odómetro o GPS) / km estimados
   if (vp.salidaReal && !vp.llegadaReal && vp.distanciaEstimadaKm > 0) {
-    // Buscar km recorridos del viaje libre en curso
-    const viajeReal = buscarViajeReal(vp);
-    if (viajeReal && viajeReal.kmRecorridos > 0) {
-      const pct = Math.min(95, Math.round((viajeReal.kmRecorridos / vp.distanciaEstimadaKm) * 100));
-      return Math.max(5, pct); // Mínimo 5% si ya salió
+    const codigo = vp.codigoEquipo || vp.patente;
+    const km = getKmRecorridosEnCurso(codigo);
+    if (km != null && km > 0) {
+      const pct = Math.round((km / vp.distanciaEstimadaKm) * 100);
+      // Clamp 5..95: nunca mostrar 0 cuando ya salió, ni 100 hasta confirmar destino
+      return Math.min(95, Math.max(5, pct));
     }
-    return 5; // Salió pero sin km aún
+    return 5;  // Salió pero todavía sin km medibles
   }
 
-  // Si no tenemos distancia estimada pero está en curso, usar tiempo
-  if (vp.estado === 'en_curso' || (vp.salidaReal && !vp.llegadaReal)) {
-    return 5; // Al menos salió
-  }
-
+  if (vp.estado === 'en_curso' || (vp.salidaReal && !vp.llegadaReal)) return 5;
   if (vp.estado === 'pendiente') return 0;
   if (vp.estado === 'cancelado') return null;
-
   return null;
 }
 
@@ -786,10 +782,18 @@ export async function cancelarViajeProgramado(id, motivo) {
   return _enriquecer(vp);
 }
 
-export function getViajesProgramados({ fecha, patente, codigoEquipo, division, estado, empresa } = {}) {
+export function getViajesProgramados({ fecha, patente, codigoEquipo, division, estado, empresa, incluirEnCurso } = {}) {
   let lista = [..._cache.values()].map(_enriquecer);
   if (empresa)      lista = lista.filter(v => v.empresa === empresa);
-  if (fecha)        lista = lista.filter(v => v.fechaInicio === fecha);
+  if (fecha) {
+    // Cuando incluirEnCurso=true (vista "Hoy"), un viaje en curso queda visible
+    // sin importar su fecha de programación: si todavía no llegó a destino,
+    // sigue siendo trabajo activo del día actual.
+    lista = incluirEnCurso
+      ? lista.filter(v => v.fechaInicio === fecha
+                       || (v.estado === 'en_curso' && !v.cancelado))
+      : lista.filter(v => v.fechaInicio === fecha);
+  }
   if (codigoEquipo) lista = lista.filter(v => v.codigoEquipo === codigoEquipo);
   else if (patente) lista = lista.filter(v => v.patente      === patente);
   if (division)     lista = lista.filter(v => v.division     === division);
