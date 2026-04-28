@@ -10,6 +10,8 @@
 
 import { db } from '../../database/database.js';
 import { sincronizarUsuariosDesdeHub } from './sync-usuarios.js';
+import { sincronizarUnidadesNegocioDesdeHub } from './sync-unidades-negocio.js';
+import { sincronizarEquiposDesdeEquipos } from './sync-equipos.js';
 
 const INTERVALO_MIN = parseInt(process.env.SYNC_INTERVAL_MIN) || 10;
 
@@ -84,6 +86,13 @@ export async function initSync() {
 }
 
 async function correrTodos() {
+  // Hub: usuarios + catalogo (unidades de negocio + familias)
   await sincronizarUsuariosDesdeHub().catch(err =>
     log('error', `sync usuarios: ${err.message}`));
+  await sincronizarUnidadesNegocioDesdeHub().catch(err =>
+    log('error', `sync unidades-negocio: ${err.message}`));
+
+  // Equipos: asignacion equipo -> unidad de negocio
+  await sincronizarEquiposDesdeEquipos().catch(err =>
+    log('error', `sync equipos: ${err.message}`));
 }
