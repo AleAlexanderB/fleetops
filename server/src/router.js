@@ -423,6 +423,18 @@ router.get('/status', (req, res) => {
   });
 });
 
+// Estado de sincronización con Hub/Equipos. Lo usa la pantalla de Configuración
+// para mostrar "Sincronizado hace X min" o "⚠ Hub no responde".
+router.get('/sync/status', async (req, res) => {
+  try {
+    const { getSyncStatus } = await import('./modules/sync/sync.js');
+    const status = await getSyncStatus();
+    res.json({ ok: true, data: status });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // ── Re-match retroactivo de programados ─────────────────────────────────────
 
 router.post('/viajes/programados/rematch', requireAdmin, async (req, res) => {

@@ -46,6 +46,7 @@ import { initRutas, recalcularEstadisticasRutas } from './modules/viajes/rutas.j
 import { initTarifas }          from './modules/tarifas/tarifas.js';
 import { initGeocercasTemp }    from './modules/geocercas/geocercasTemp.js';
 import { initAuth }             from './modules/auth/auth.js';
+import { initSync }             from './modules/sync/sync.js';
 import { loadEquiposLookup }   from './modules/redgps/equipos_lookup.js';
 import router                    from './router.js';
 
@@ -124,7 +125,10 @@ async function bootstrap() {
     geocercas: syncGeocercas,    // cada hora
   });
 
-  // 8. Express
+  // 9. Sync inter-servicios (Hub, Equipos) — cada 10 min
+  initSync().catch(err => console.warn('[server] initSync:', err.message));
+
+  // 10. Express
   const app = express();
 
   app.use(cors({

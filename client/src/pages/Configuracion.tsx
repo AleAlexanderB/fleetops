@@ -172,6 +172,9 @@ export default function Configuracion() {
         </span>
       </div>
 
+      {/* Estado de sincronización con Hub/Equipos */}
+      <SyncStatusBadge />
+
       {/* Usuarios */}
       <UsuariosConfig />
 
@@ -352,6 +355,76 @@ function UsuariosConfig() {
           </table>
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Badge de estado de sincronización con Hub/Equipos ────────────────────
+
+interface SyncStatus {
+  origen:         string
+  sincronizadoEn: string | null
+  ok:             boolean
+  cantidad:       number | null
+  error:          string | null
+}
+
+function relativeTime(iso: string | null) {
+  if (!iso) return 'nunca'
+  const diff = Date.now() - new Date(iso).getTime()
+  const min = Math.round(diff / 60000)
+  if (min < 1)  return 'recién'
+  if (min < 60) return `hace ${min} min`
+  const h = Math.floor(min / 60)
+  if (h < 24)   return `hace ${h}h`
+  return `hace ${Math.floor(h / 24)}d`
+}
+
+const ORIGEN_LABEL: Record<string, string> = {
+  hub_usuarios:           'Usuarios (Hub)',
+  hub_unidades_negocio:   'Unidades de negocio (Hub)',
+  hub_familias:           'Categorías (Hub)',
+  equipos_activos:        'Asignaciones (Equipos)',
+}
+
+function SyncStatusBadge() {
+  const { data } = useQuery<{ ok: boolean; data: SyncStatus[] }>({
+    queryKey: ['sync-status'],
+    queryFn: () => http.get('/sync/status').then(r => r.data),
+    refetchInterval: 30_000,
+  })
+  const items = data?.data ?? []
+  if (items.length === 0) return null
+
+  return (
+    <div className="bg-[#161B22] border border-white/[0.07] rounded-xl px-5 py-3">
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-[11px] uppercase tracking-wide text-[#6E7681]">Sincronización</span>
+        <span className="text-[10px] text-[#6E7681]">cada 10 min</span>
+      </div>
+      <div className="flex flex-wrap gap-3">
+        {items.map(s => {
+          const label = ORIGEN_LABEL[s.origen] || s.origen
+          if (s.ok) {
+            return (
+              <div key={s.origen} className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="text-[12px] text-[#E6EDF3]">{label}</span>
+                <span className="text-[11px] text-[#8B949E]">
+                  {relativeTime(s.sincronizadoEn)}{s.cantidad != null ? ` · ${s.cantidad}` : ''}
+                </span>
+              </div>
+            )
+          }
+          return (
+            <div key={s.origen} className="flex items-center gap-1.5" title={s.error || 'sin detalle'}>
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+              <span className="text-[12px] text-red-300">{label}</span>
+              <span className="text-[11px] text-red-400/70">no responde</span>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
