@@ -96,3 +96,9 @@ async function correrTodos() {
   await sincronizarEquiposDesdeEquipos().catch(err =>
     log('error', `sync equipos: ${err.message}`));
 }
+
+// Versión pública de correrTodos para forzar un tick on-demand
+// (endpoint POST /api/sync/run y otros disparadores manuales).
+export async function runAllNow() {
+  await correrTodos();
+}

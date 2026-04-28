@@ -435,6 +435,19 @@ router.get('/sync/status', async (req, res) => {
   }
 });
 
+// Forzar un sync manual (no esperar el próximo tick de 10 min).
+// Lo usa el botón "Sincronizar ahora" de la UI y para debugging.
+router.post('/sync/run', requireAdmin, async (req, res) => {
+  try {
+    const { runAllNow } = await import('./modules/sync/sync.js');
+    const before = Date.now();
+    await runAllNow();
+    res.json({ ok: true, durationMs: Date.now() - before });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // Lista de asignaciones equipo→unidad sincronizadas desde Equipos, cruzadas
 // con la flota GPS (RedGPS via gateway). Sirve para verificar matching y
 // detectar equipos del catálogo que no aparecen en GPS o viceversa.
