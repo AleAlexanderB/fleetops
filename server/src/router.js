@@ -904,6 +904,11 @@ router.post('/viajes/programados', async (req, res) => {
     const vp = await crearViajeProgramado(req.body);
     res.status(201).json({ ok: true, data: vp });
   } catch (err) {
+    if (err.code === 'EQUIPO_OCUPADO') {
+      return res.status(409).json({
+        ok: false, error: err.message, code: err.code, detalle: err.detalle,
+      });
+    }
     res.status(400).json({ ok: false, error: err.message });
   }
 });

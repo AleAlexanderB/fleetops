@@ -21,6 +21,12 @@ import { buscarTarifa } from '../tarifas/tarifas.js';
 const MINUTOS_PARADA = parseInt(process.env.MINUTOS_PARADA_DESTINO) || 5;
 const MS_PARADA      = MINUTOS_PARADA * 60 * 1000;
 
+// Umbral para cerrar viajes "zombies": un libre que arrancó hace más de
+// HORAS_ABANDONO sin llegar a destino se marca 'abandonado' automáticamente.
+// 48h cubre los viajes largos legítimos (LOMA NEGRA → CATUA, etc.) y atrapa
+// los que quedaron abiertos por eventos perdidos del motor.
+const HORAS_ABANDONO = parseInt(process.env.HORAS_ABANDONO_VIAJE) || 48;
+
 // Maps en memoria — keyed por codigo del equipo
 const _enCurso   = new Map();  // codigo → viaje abierto
 const _pendiente = new Map();  // codigo → { geocerca, tsEntrada, tsEntradaMs, timeoutId }
@@ -45,6 +51,16 @@ function log(level, msg) {
 export async function initViajesLibres() {
   const pool = db();
   if (!pool) { log('warn', 'Sin MySQL — viajes libres solo en memoria'); return; }
+
+  // Antes de cargar, cerrar zombies viejos para que no contaminen el cache
+  // y para destrabar programados que quedaron vinculados a libres sin cerrar.
+  await cerrarViajesAbandonados();
+
+  // Cleanup periódico cada hora — previene zombies futuros sin esperar reinicio.
+  setInterval(() => {
+    cerrarViajesAbandonados().catch(err =>
+      log('warn', `cleanup zombies periódico: ${err.message}`));
+  }, 60 * 60 * 1000);
 
   try {
     const hoy = _fechaHoyAR();
@@ -108,6 +124,35 @@ function _fechaHoyAR() {
   return new Date().toLocaleDateString('en-CA', {
     timeZone: 'America/Argentina/Buenos_Aires',
   });
+}
+
+/**
+ * Marca como 'abandonado' los viajes libres que llevan demasiado tiempo
+ * abiertos sin llegar a destino. Casos típicos: el camión salió antes
+ * de cumplir el umbral de permanencia, o se perdió el evento "Ingresa".
+ * Sin este cleanup, el viaje queda zombie y los programados vinculados
+ * muestran "en curso" eternamente.
+ */
+export async function cerrarViajesAbandonados() {
+  const pool = db();
+  if (!pool) return 0;
+  try {
+    const [result] = await pool.execute(
+      `UPDATE fleetops_viajes_libres
+          SET estado = 'abandonado',
+              timestamp_fin = NOW(),
+              duracion_min = TIMESTAMPDIFF(MINUTE, timestamp_inicio, NOW())
+        WHERE estado IN ('en_curso','en_transito')
+          AND timestamp_inicio < (NOW() - INTERVAL ${HORAS_ABANDONO} HOUR)`
+    );
+    if (result.affectedRows > 0) {
+      log('warn', `Cerrados ${result.affectedRows} viajes abandonados (>${HORAS_ABANDONO}h sin destino confirmado)`);
+    }
+    return result.affectedRows;
+  } catch (err) {
+    log('error', `cerrarViajesAbandonados: ${err.message}`);
+    return 0;
+  }
 }
 
 // ── Mapeo DB ↔ objeto ─────────────────────────────────────────────────────────

@@ -561,12 +561,25 @@ function _estadoVehiculo(vp) {
   };
 }
 
+// Umbral en horas para flagear un viaje como "requiere revisión": ya salió
+// pero no llegó a destino y pasó demasiado tiempo. Cubre los casos donde el
+// libre vinculado quedó zombie o el camión llegó pero no se confirmó la
+// permanencia. 36h tolera viajes legítimos largos (LOMA NEGRA → CATUA ≈32h).
+const HORAS_REVISION = 36;
+
+function _esRequiereRevision(vp) {
+  if (!vp.salidaReal || vp.llegadaReal || vp.cancelado) return false;
+  const horas = (Date.now() - new Date(vp.salidaReal).getTime()) / 3_600_000;
+  return horas > HORAS_REVISION;
+}
+
 function _enriquecer(vp) {
   // calcEstado puede actualizar campos reales (salidaReal, llegadaReal, etc.)
   // Debe operar sobre el original del cache para persistir cambios entre llamadas
   const estado = calcEstado(vp);
   const copia = { ...vp };
   copia.estado = estado;
+  copia.requiereRevision = _esRequiereRevision(copia);
   copia.progresoPct = calcProgreso(copia);
   copia.distanciaRestanteKm = _calcDistanciaRestante(copia);
   copia.empresa     = _resolverEmpresa(copia);
@@ -601,7 +614,43 @@ function _enriquecer(vp) {
 
 // ── API pública ───────────────────────────────────────────────────────────────
 
+/**
+ * Verifica si el equipo tiene un programado activo (en_curso). Si lo tiene
+ * y `forzar` es false, lanza un error con code='EQUIPO_OCUPADO' y los datos
+ * del viaje activo para que el frontend pueda pedir confirmación.
+ */
+function _verificarEquipoLibre(data) {
+  if (data.forzar) return;
+  const codigo = data.codigoEquipo || data.patente;
+  if (!codigo) return;
+
+  for (const vp of _cache.values()) {
+    if (vp.cancelado) continue;
+    const vpKey = vp.codigoEquipo || vp.patente;
+    if (vpKey !== codigo) continue;
+    const enriquecido = _enriquecer(vp);
+    if (enriquecido.estado !== 'en_curso') continue;
+
+    const err = new Error(
+      `${codigo} tiene un viaje en curso (${vp.geocercaOrigenNombre} → ${vp.geocercaDestinoNombre}, salida ${vp.fechaInicio} ${vp.horaInicio})`
+    );
+    err.code = 'EQUIPO_OCUPADO';
+    err.detalle = {
+      viajeProgramadoId:   vp.id,
+      origenNombre:        vp.geocercaOrigenNombre,
+      destinoNombre:       vp.geocercaDestinoNombre,
+      fechaInicio:         vp.fechaInicio,
+      horaInicio:          vp.horaInicio,
+      salidaReal:          vp.salidaReal,
+      requiereRevision:    enriquecido.requiereRevision || false,
+    };
+    throw err;
+  }
+}
+
 export async function crearViajeProgramado(data) {
+  _verificarEquipoLibre(data);
+
   const id    = _nextId++;
 
   // Obtener distancia estimada de la ruta

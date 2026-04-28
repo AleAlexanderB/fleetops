@@ -31,6 +31,7 @@ interface ViajeProg {
   fechaInicio: string
   horaInicio: string
   estado: 'pendiente' | 'en_curso' | 'cumplido' | 'cancelado'
+  requiereRevision?: boolean
   cumplimientoPct: number | null
   progresoPct: number | null
   distanciaRestanteKm: number | null
@@ -87,9 +88,34 @@ function useCrearViaje() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (body: Record<string, unknown>) => {
-      const r = await http.post('/viajes/programados', body)
-      if (!r.data.ok) throw new Error(r.data.error)
-      return r.data
+      const post = (b: Record<string, unknown>) => http.post('/viajes/programados', b)
+      try {
+        const r = await post(body)
+        if (!r.data.ok) throw new Error(r.data.error)
+        return r.data
+      } catch (e: unknown) {
+        const err = e as { response?: { status?: number; data?: { code?: string; detalle?: { origenNombre?: string; destinoNombre?: string; fechaInicio?: string; horaInicio?: string; requiereRevision?: boolean } } } }
+        const data = err.response?.data
+        if (err.response?.status === 409 && data?.code === 'EQUIPO_OCUPADO') {
+          const d = data.detalle ?? {}
+          const advertencia = d.requiereRevision
+            ? '\n\n⚠ Ese viaje en curso tiene más de 36h sin confirmar llegada — puede que ya haya terminado.'
+            : ''
+          const codigoEquipo = (body.codigoEquipo ?? body.patente ?? 'el equipo') as string
+          const ok = window.confirm(
+            `${codigoEquipo} ya tiene un viaje en curso:\n\n` +
+            `${d.origenNombre ?? '?'} → ${d.destinoNombre ?? '?'}\n` +
+            `Programado: ${d.fechaInicio ?? '?'} ${d.horaInicio ?? ''}` +
+            advertencia +
+            `\n\n¿Crear este nuevo viaje de todos modos?`
+          )
+          if (!ok) throw new Error('Operación cancelada por el usuario')
+          const r2 = await post({ ...body, forzar: true })
+          if (!r2.data.ok) throw new Error(r2.data.error)
+          return r2.data
+        }
+        throw e
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['viajes-programados'] }),
   })
@@ -715,7 +741,16 @@ function TablaViajes({ viajes, onEdit, onCancel, showExpand = true }: {
                       ? <span className="text-[11px] text-emerald-400 font-semibold">{v.kmReales != null ? `${v.kmReales} km` : '—'}</span>
                       : <span className="text-[#6E7681]">—</span>}
                 </td>
-                <td><EstadoBadge estado={v.estado} /></td>
+                <td>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <EstadoBadge estado={v.estado} />
+                    {v.requiereRevision && (
+                      <span className="badge text-[10px] bg-red-500/15 text-red-300 border border-red-500/40" title="Salió hace más de 36h sin confirmar llegada — revisá si llegó a destino o cancelá el viaje">
+                        ⚠ Revisar
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td>
                   <div className="flex items-center gap-1.5">
                     {showExpand && <ChevronDown size={12} className={`text-[#6E7681] transition-transform ${expanded === v.id ? 'rotate-180' : ''}`} />}
@@ -816,10 +851,10 @@ function VistaHoy({ onEdit, onNuevo, onCancel, empresa }: { onEdit: (v: ViajePro
   return (
     <>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="stat-card"><p className="stat-label">Total hoy</p><p className="stat-value text-blue-400">{resumen?.total ?? '—'}</p></div>
+        <div className="stat-card"><p className="stat-label">Total activos</p><p className="stat-value text-blue-400">{resumen?.total ?? '—'}</p></div>
         <div className="stat-card"><p className="stat-label">Pendientes</p><p className="stat-value text-[#8B949E]">{resumen?.pendiente ?? '—'}</p></div>
         <div className="stat-card"><p className="stat-label">En curso</p><p className="stat-value text-blue-400">{resumen?.en_curso ?? '—'}</p></div>
-        <div className="stat-card"><p className="stat-label">Cumplidos</p><p className="stat-value text-emerald-400">{resumen?.cumplido ?? '—'}</p></div>
+        <div className="stat-card"><p className="stat-label">Cumplidos hoy</p><p className="stat-value text-emerald-400">{resumen?.cumplido ?? '—'}</p></div>
       </div>
 
       <div className="card">
@@ -828,7 +863,7 @@ function VistaHoy({ onEdit, onNuevo, onCancel, empresa }: { onEdit: (v: ViajePro
         ) : viajes.length === 0 ? (
           <div className="p-10 text-center">
             <p className="text-4xl mb-3">📋</p>
-            <p className="text-[14px] font-semibold mb-1">Sin viajes programados para hoy</p>
+            <p className="text-[14px] font-semibold mb-1">Sin viajes activos</p>
             <p className="text-[13px] text-[#8B949E] mb-4">Creá uno con el botón "Nuevo viaje".</p>
             <button className="btn btn-primary" onClick={onNuevo}><Plus size={13} />Nuevo viaje</button>
           </div>
@@ -1430,7 +1465,7 @@ export default function ViajesProgramados() {
         <div className="flex gap-2 flex-wrap items-center">
           <Tabs
             tabs={[
-              { key: 'hoy',           label: 'Hoy',           count: resumenHoy?.total },
+              { key: 'hoy',           label: 'En curso',      count: resumenHoy?.total },
               { key: 'planificacion', label: 'Planificación' },
               { key: 'historico',     label: 'Historico' },
               { key: 'futuros',       label: 'Futuros' },
