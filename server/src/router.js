@@ -435,6 +435,47 @@ router.get('/sync/status', async (req, res) => {
   }
 });
 
+// Lista de asignaciones equipo→unidad sincronizadas desde Equipos, cruzadas
+// con la flota GPS (RedGPS via gateway). Sirve para verificar matching y
+// detectar equipos del catálogo que no aparecen en GPS o viceversa.
+router.get('/equipos-asignacion', requireEmpresa, async (req, res) => {
+  try {
+    const pool = (await import('./database/database.js')).db();
+    if (!pool) return res.json({ ok: true, data: [] });
+    const [rows] = await pool.execute(
+      `SELECT codigo_equipo, codigo_interno, patente,
+              unidad_negocio_id, unidad_negocio_nombre,
+              subdivision_id, subdivision_nombre,
+              estado, empresa_codigo, sincronizado_en
+         FROM fleetops_equipo_asignacion
+         ORDER BY codigo_equipo ASC`
+    );
+    const vehiculosGps = new Map(
+      getVehiculos().map(v => [(v.codigo || '').toUpperCase(), v])
+    );
+    const data = rows.map(r => {
+      const v = vehiculosGps.get((r.codigo_equipo || '').toUpperCase());
+      return {
+        codigoEquipo:        r.codigo_equipo,
+        codigoInterno:       r.codigo_interno,
+        patente:             r.patente,
+        unidadNegocioId:     r.unidad_negocio_id,
+        unidadNegocioNombre: r.unidad_negocio_nombre,
+        subdivisionId:       r.subdivision_id,
+        subdivisionNombre:   r.subdivision_nombre,
+        estadoEquipo:        r.estado,
+        empresaCodigo:       r.empresa_codigo,
+        sincronizadoEn:      r.sincronizado_en?.toISOString?.() ?? r.sincronizado_en,
+        gpsMatch:            !!v,
+        gpsPatente:          v?.patente ?? null,
+      };
+    });
+    res.json({ ok: true, data, total: data.length, gpsMatched: data.filter(d => d.gpsMatch).length });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // ── Re-match retroactivo de programados ─────────────────────────────────────
 
 router.post('/viajes/programados/rematch', requireAdmin, async (req, res) => {

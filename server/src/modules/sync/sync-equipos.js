@@ -58,17 +58,25 @@ export async function sincronizarEquiposDesdeEquipos() {
       if (items.length === 0) break;
 
       for (const a of items) {
-        const codigo = a.codigoInterno || a.patente;
-        if (!codigo) continue;
-        codigosVistos.add(codigo);
+        const codigoInterno = a.codigoInterno || null;
+        // FleetOps (heredado de RedGPS) usa el codigo sin el prefijo "AB-EQ-".
+        // Por eso guardamos:
+        //   codigo_equipo  → versión limpia, lingua franca para cruzar con GPS
+        //   codigo_interno → original de Equipos, para volver a referenciar
+        const codigoEquipo = codigoInterno
+          ? codigoInterno.replace(/^AB-EQ-/, '')
+          : (a.patente || null);
+        if (!codigoEquipo) continue;
+        codigosVistos.add(codigoEquipo);
 
         await pool.execute(
           `INSERT INTO fleetops_equipo_asignacion
-             (codigo_equipo, patente, unidad_negocio_id, unidad_negocio_nombre,
+             (codigo_equipo, codigo_interno, patente, unidad_negocio_id, unidad_negocio_nombre,
               subdivision_id, subdivision_nombre, estado, empresa_id, empresa_codigo,
               sincronizado_en)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
            ON DUPLICATE KEY UPDATE
+             codigo_interno        = VALUES(codigo_interno),
              patente               = VALUES(patente),
              unidad_negocio_id     = VALUES(unidad_negocio_id),
              unidad_negocio_nombre = VALUES(unidad_negocio_nombre),
@@ -79,7 +87,8 @@ export async function sincronizarEquiposDesdeEquipos() {
              empresa_codigo        = VALUES(empresa_codigo),
              sincronizado_en       = NOW()`,
           [
-            codigo,
+            codigoEquipo,
+            codigoInterno,
             a.patente ?? null,
             a.unidadNegocioId ?? null,
             a.unidadNegocio?.nombre ?? null,
