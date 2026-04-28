@@ -50,6 +50,10 @@ services:
     env_file: .env
     environment:
       GATEWAY_URL: ${GATEWAY_URL:-http://integration-gateway:3100}
+      # Sync inter-servicios — consume catalogos desde Hub y asignaciones desde Equipos
+      INTERNAL_SYNC_KEY: ${INTERNAL_SYNC_KEY:-}
+      HUB_URL: ${HUB_URL:-http://ab_hub:3200}
+      EQUIPOS_URL: ${EQUIPOS_URL:-http://equipos_app:8078}
     volumes:
       # divisiones.json persiste entre reinicios
       - fleetops_data:/app/data
@@ -123,6 +127,8 @@ services:
       # Hub AB SSO (2026-04-23)
       HUB_JWT_SECRET: ${HUB_JWT_SECRET:-}
       WEBHOOK_API_KEY: ${WEBHOOK_API_KEY:-}
+      # Sync inter-servicios — misma key compartida con Hub y FleetOps
+      INTERNAL_SYNC_KEY: ${INTERNAL_SYNC_KEY:-}
     volumes:
       - equipos_uploads:/app/uploads
     networks:
