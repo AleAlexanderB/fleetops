@@ -39,8 +39,6 @@ function divColor(name: string) {
 // ── Componente principal ─────────────────────────────────────────────────────
 
 export default function Configuracion() {
-  const qc = useQueryClient()
-
   // Empresa seleccionada para configuracion
   const { data: empresas = [] } = useEmpresas()
   const [empresa, setEmpresa] = useState('')
@@ -86,92 +84,13 @@ export default function Configuracion() {
     return map
   }, [vehiculos])
 
-  // ── Mutations ────────────────────────────────────────────────────────────
-
-  const invalidar = () => {
-    qc.invalidateQueries({ queryKey: ['divisiones-validas'] })
-    qc.invalidateQueries({ queryKey: ['vehiculos'] })
-  }
-
-  const addDiv = useMutation({
-    mutationFn: (nombre: string) =>
-      http.post('/divisiones/config', { nombre, empresa: empresaActiva }),
-    onSuccess: invalidar,
-  })
-
-  const delDiv = useMutation({
-    mutationFn: (nombre: string) =>
-      http.delete(`/divisiones/config/${encodeURIComponent(nombre)}?empresa=${encodeURIComponent(empresaActiva)}`),
-    onSuccess: invalidar,
-  })
-
-  const addSubdiv = useMutation({
-    mutationFn: ({ division, nombre }: { division: string; nombre: string }) =>
-      http.post(`/divisiones/config/${encodeURIComponent(division)}/subdivisiones`, { nombre, empresa: empresaActiva }),
-    onSuccess: invalidar,
-  })
-
-  const delSubdiv = useMutation({
-    mutationFn: ({ division, nombre }: { division: string; nombre: string }) =>
-      http.delete(
-        `/divisiones/config/${encodeURIComponent(division)}/subdivisiones/${encodeURIComponent(nombre)}?empresa=${encodeURIComponent(empresaActiva)}`,
-      ),
-    onSuccess: invalidar,
-  })
-
   // ── Estado local ─────────────────────────────────────────────────────────
 
-  const [newDiv, setNewDiv] = useState('')
-  const [divError, setDivError] = useState('')
-
   const [selectedDiv, setSelectedDiv] = useState('')
-  const [newSubdiv, setNewSubdiv] = useState('')
-  const [subdivError, setSubdivError] = useState('')
 
   // Seleccionar primera division si no hay seleccion
   const activeDivForSub = selectedDiv || divisiones[0] || ''
   const currentSubdivs = subdivisiones[activeDivForSub] ?? []
-
-  // ── Handlers ─────────────────────────────────────────────────────────────
-
-  function handleAddDiv() {
-    const nombre = newDiv.trim()
-    if (!nombre) { setDivError('El nombre no puede estar vacio'); return }
-    if (nombre.length > 50) { setDivError('Maximo 50 caracteres'); return }
-    if (divisiones.some(d => d.toLowerCase() === nombre.toLowerCase())) {
-      setDivError('Ya existe una unidad de negocio con ese nombre')
-      return
-    }
-    setDivError('')
-    addDiv.mutate(nombre, { onSuccess: () => setNewDiv('') })
-  }
-
-  function handleDeleteDiv(nombre: string) {
-    const count = vehiculosPorDiv[nombre] ?? 0
-    if (count > 0) return
-    delDiv.mutate(nombre)
-  }
-
-  function handleAddSubdiv() {
-    const nombre = newSubdiv.trim()
-    if (!activeDivForSub) { setSubdivError('Selecciona una unidad de negocio primero'); return }
-    if (!nombre) { setSubdivError('El nombre no puede estar vacio'); return }
-    if (nombre.length > 50) { setSubdivError('Maximo 50 caracteres'); return }
-    if (currentSubdivs.some(s => s.toLowerCase() === nombre.toLowerCase())) {
-      setSubdivError('Ya existe esa subdivision')
-      return
-    }
-    setSubdivError('')
-    addSubdiv.mutate(
-      { division: activeDivForSub, nombre },
-      { onSuccess: () => setNewSubdiv('') },
-    )
-  }
-
-  function handleDeleteSubdiv(nombre: string) {
-    if (!activeDivForSub) return
-    delSubdiv.mutate({ division: activeDivForSub, nombre })
-  }
 
   // ── Loading / Error ──────────────────────────────────────────────────────
 
@@ -231,7 +150,7 @@ export default function Configuracion() {
             <Building2 size={14} className="text-[#8B949E]" />
             <select
               value={empresaActiva}
-              onChange={e => { setEmpresa(e.target.value); setSelectedDiv(''); setNewDiv(''); setNewSubdiv('') }}
+              onChange={e => { setEmpresa(e.target.value); setSelectedDiv('') }}
               className="input text-[12px] px-3 py-1.5"
             >
               {empresas.map(e => (
@@ -269,23 +188,25 @@ export default function Configuracion() {
               <h2 className="text-[14px] font-semibold text-[#E6EDF3]">Unidades de negocio</h2>
               <span className="ml-auto text-[11px] text-[#6E7681]">{divisiones.length} total</span>
             </div>
+            <p className="text-[11px] text-[#8B949E] mt-1.5">
+              Solo lectura. Las unidades de negocio se gestionan desde el <span className="text-blue-400 font-medium">Hub AB</span>.
+            </p>
           </div>
 
           {/* Lista */}
           <div className="divide-y divide-white/[0.05]">
             {divisiones.length === 0 && (
               <div className="px-5 py-8 text-center text-[12px] text-[#6E7681]">
-                No hay unidades de negocio configuradas para {empresaActiva}. Agrega la primera.
+                No hay unidades de negocio configuradas para {empresaActiva}.
               </div>
             )}
 
             {divisiones.map(div => {
               const count = vehiculosPorDiv[div] ?? 0
               const subs = subdivisiones[div] ?? []
-              const canDelete = count === 0
 
               return (
-                <div key={div} className="px-5 py-3 flex items-start gap-3 group">
+                <div key={div} className="px-5 py-3 flex items-start gap-3">
                   <div className={`w-3 h-3 rounded-full mt-0.5 shrink-0 ${divColor(div)}`} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -302,52 +223,9 @@ export default function Configuracion() {
                       </div>
                     )}
                   </div>
-                  <div className="relative group/del">
-                    <button
-                      onClick={() => handleDeleteDiv(div)}
-                      disabled={!canDelete || delDiv.isPending}
-                      className={`p-1 rounded transition-colors ${
-                        canDelete
-                          ? 'text-[#6E7681] hover:text-red-400 hover:bg-red-500/10'
-                          : 'text-[#6E7681]/30 cursor-not-allowed'
-                      }`}
-                      title={canDelete ? 'Eliminar unidad de negocio' : `No se puede eliminar: ${count} equipos asignados`}
-                    >
-                      <X size={14} />
-                    </button>
-                    {!canDelete && (
-                      <div className="absolute right-0 top-full mt-1 w-48 bg-[#1C2333] border border-white/[0.1] rounded-md px-2.5 py-1.5 text-[10px] text-[#8B949E] opacity-0 group-hover/del:opacity-100 transition-opacity pointer-events-none z-10 whitespace-nowrap">
-                        No se puede eliminar: {count} equipos asignados
-                      </div>
-                    )}
-                  </div>
                 </div>
               )
             })}
-          </div>
-
-          {/* Formulario agregar */}
-          <div className="px-5 py-4 border-t border-white/[0.07]">
-            <div className="flex gap-2">
-              <input
-                className="input flex-1"
-                placeholder="Nueva unidad de negocio..."
-                value={newDiv}
-                onChange={e => { setNewDiv(e.target.value); setDivError('') }}
-                maxLength={50}
-                onKeyDown={e => e.key === 'Enter' && handleAddDiv()}
-              />
-              <button className="btn btn-primary" onClick={handleAddDiv} disabled={addDiv.isPending}>
-                {addDiv.isPending ? (
-                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Plus size={14} />
-                )}
-                Agregar
-              </button>
-            </div>
-            {divError && <p className="text-[11px] text-red-400 mt-1.5">{divError}</p>}
-            {addDiv.isError && <p className="text-[11px] text-red-400 mt-1.5">Error al agregar la unidad de negocio.</p>}
           </div>
         </div>
 
@@ -363,64 +241,34 @@ export default function Configuracion() {
               <select
                 className="input w-full"
                 value={activeDivForSub}
-                onChange={e => { setSelectedDiv(e.target.value); setSubdivError('') }}
+                onChange={e => setSelectedDiv(e.target.value)}
               >
                 {divisiones.map(d => (
                   <option key={d} value={d}>{d}</option>
                 ))}
               </select>
             ) : (
-              <p className="text-[11px] text-[#6E7681]">Crea una unidad de negocio primero para gestionar subdivisiones.</p>
+              <p className="text-[11px] text-[#6E7681]">No hay unidades de negocio.</p>
             )}
+            <p className="text-[11px] text-[#8B949E] mt-2">
+              Solo lectura. Las subdivisiones se gestionan desde el <span className="text-blue-400 font-medium">Hub AB</span>.
+            </p>
           </div>
 
           {divisiones.length > 0 && (
-            <>
-              <div className="divide-y divide-white/[0.05]">
-                {currentSubdivs.length === 0 && (
-                  <div className="px-5 py-8 text-center text-[12px] text-[#6E7681]">
-                    No hay subdivisiones para <span className="font-medium text-[#8B949E]">{activeDivForSub}</span>
-                  </div>
-                )}
-                {currentSubdivs.map(sub => (
-                  <div key={sub} className="px-5 py-2.5 flex items-center gap-3 group">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#8B949E]/50 shrink-0" />
-                    <span className="text-[13px] text-[#E6EDF3] flex-1">{sub}</span>
-                    <button
-                      onClick={() => handleDeleteSubdiv(sub)}
-                      disabled={delSubdiv.isPending}
-                      className="p-1 rounded text-[#6E7681] hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
-                      title="Eliminar subdivision"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="px-5 py-4 border-t border-white/[0.07]">
-                <div className="flex gap-2">
-                  <input
-                    className="input flex-1"
-                    placeholder={`Nueva subdivision para ${activeDivForSub}...`}
-                    value={newSubdiv}
-                    onChange={e => { setNewSubdiv(e.target.value); setSubdivError('') }}
-                    maxLength={50}
-                    onKeyDown={e => e.key === 'Enter' && handleAddSubdiv()}
-                  />
-                  <button className="btn btn-primary" onClick={handleAddSubdiv} disabled={addSubdiv.isPending}>
-                    {addSubdiv.isPending ? (
-                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Plus size={14} />
-                    )}
-                    Agregar
-                  </button>
+            <div className="divide-y divide-white/[0.05]">
+              {currentSubdivs.length === 0 && (
+                <div className="px-5 py-8 text-center text-[12px] text-[#6E7681]">
+                  No hay subdivisiones para <span className="font-medium text-[#8B949E]">{activeDivForSub}</span>
                 </div>
-                {subdivError && <p className="text-[11px] text-red-400 mt-1.5">{subdivError}</p>}
-                {addSubdiv.isError && <p className="text-[11px] text-red-400 mt-1.5">Error al agregar la subdivision.</p>}
-              </div>
-            </>
+              )}
+              {currentSubdivs.map(sub => (
+                <div key={sub} className="px-5 py-2.5 flex items-center gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#8B949E]/50 shrink-0" />
+                  <span className="text-[13px] text-[#E6EDF3] flex-1">{sub}</span>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -434,180 +282,77 @@ export default function Configuracion() {
 // ── Componente de Usuarios ──────────────────────────────────────────────────
 
 function UsuariosConfig() {
-  const qc = useQueryClient()
-  const { user: currentUser } = useAuth()
-  const { data: empresas = [] } = useEmpresas()
-
   const { data: usuarios = [], isLoading } = useQuery<Usuario[]>({
     queryKey: ['usuarios'],
     queryFn: () => api.usuarios.list(),
     staleTime: 30_000,
   })
 
-  const [showAdd, setShowAdd] = useState(false)
-  const [editUser, setEditUser] = useState<Usuario | null>(null)
-  const [pwUser, setPwUser] = useState<Usuario | null>(null)
-
-  // ── Crear usuario ─────────────────────────────────────────────────────────
-  const createMut = useMutation({
-    mutationFn: (data: { username: string; password: string; nombre: string; rol: string; empresa?: string }) =>
-      api.usuarios.create(data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['usuarios'] }); setShowAdd(false) },
-  })
-
-  // ── Editar usuario ────────────────────────────────────────────────────────
-  const updateMut = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { nombre?: string; rol?: string; empresa?: string | null; activo?: boolean } }) =>
-      api.usuarios.update(id, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['usuarios'] }); setEditUser(null) },
-  })
-
-  // ── Cambiar password ──────────────────────────────────────────────────────
-  const pwMut = useMutation({
-    mutationFn: ({ id, password }: { id: number; password: string }) =>
-      api.usuarios.changePassword(id, password),
-    onSuccess: () => setPwUser(null),
-  })
-
-  // ── Toggle activo ─────────────────────────────────────────────────────────
-  function toggleActivo(u: Usuario) {
-    if (u.id === currentUser?.id) return
-    updateMut.mutate({ id: u.id, data: { activo: !u.activo } })
-  }
-
   return (
-    <>
-      {/* Modales */}
-      {showAdd && (
-        <UsuarioFormModal
-          empresas={empresas}
-          isPending={createMut.isPending}
-          isError={createMut.isError}
-          onClose={() => setShowAdd(false)}
-          onSave={(data) => createMut.mutate(data)}
-        />
-      )}
-      {editUser && (
-        <UsuarioEditModal
-          usuario={editUser}
-          empresas={empresas}
-          isPending={updateMut.isPending}
-          isError={updateMut.isError}
-          onClose={() => setEditUser(null)}
-          onSave={(data) => updateMut.mutate({ id: editUser.id, data })}
-        />
-      )}
-      {pwUser && (
-        <PasswordModal
-          usuario={pwUser}
-          isPending={pwMut.isPending}
-          isError={pwMut.isError}
-          onClose={() => setPwUser(null)}
-          onSave={(password) => pwMut.mutate({ id: pwUser.id, password })}
-        />
-      )}
-
-      <div className="bg-[#161B22] border border-white/[0.07] rounded-xl overflow-hidden">
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-white/[0.07]">
-          <div className="flex items-center gap-2">
-            <Users size={15} className="text-blue-400" />
-            <h2 className="text-[14px] font-semibold text-[#E6EDF3]">Usuarios del sistema</h2>
-            <span className="ml-auto text-[11px] text-[#6E7681]">{usuarios.length} usuarios</span>
-            <button className="btn btn-primary text-[11px] px-3 py-1.5 ml-2" onClick={() => setShowAdd(true)}>
-              <Plus size={12} /> Nuevo usuario
-            </button>
-          </div>
+    <div className="bg-[#161B22] border border-white/[0.07] rounded-xl overflow-hidden">
+      {/* Header */}
+      <div className="px-5 py-4 border-b border-white/[0.07]">
+        <div className="flex items-center gap-2">
+          <Users size={15} className="text-blue-400" />
+          <h2 className="text-[14px] font-semibold text-[#E6EDF3]">Usuarios del sistema</h2>
+          <span className="ml-auto text-[11px] text-[#6E7681]">{usuarios.length} usuarios</span>
         </div>
-
-        {/* Tabla */}
-        {isLoading ? (
-          <div className="px-5 py-8 text-center text-[12px] text-[#6E7681]">Cargando usuarios...</div>
-        ) : usuarios.length === 0 ? (
-          <div className="px-5 py-8 text-center text-[12px] text-[#6E7681]">No hay usuarios configurados.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-[12px]">
-              <thead>
-                <tr className="text-left text-[#6E7681] text-[10px] uppercase tracking-wider bg-[#0D1117]/40">
-                  <th className="p-2.5 pl-5">Usuario</th>
-                  <th className="p-2.5">Nombre</th>
-                  <th className="p-2.5">Rol</th>
-                  <th className="p-2.5">Empresa</th>
-                  <th className="p-2.5">Estado</th>
-                  <th className="p-2.5">Ultimo login</th>
-                  <th className="p-2.5 w-32">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.04]">
-                {usuarios.map(u => {
-                  const isSelf = u.id === currentUser?.id
-                  return (
-                    <tr key={u.id} className="hover:bg-white/[0.02] group">
-                      <td className="p-2.5 pl-5 font-mono font-medium text-[#E6EDF3]">{u.username}</td>
-                      <td className="p-2.5 text-[#E6EDF3]">{u.nombre}</td>
-                      <td className="p-2.5">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                          u.rol === 'admin'
-                            ? 'bg-purple-500/15 text-purple-400 border border-purple-500/20'
-                            : 'bg-blue-500/15 text-blue-400 border border-blue-500/20'
-                        }`}>
-                          {u.rol === 'admin' ? 'Admin' : 'Empresa'}
-                        </span>
-                      </td>
-                      <td className="p-2.5 text-[#8B949E]">{u.empresa ?? '—'}</td>
-                      <td className="p-2.5">
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${u.activo ? 'text-emerald-400' : 'text-red-400'}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${u.activo ? 'bg-emerald-400' : 'bg-red-400'}`} />
-                          {u.activo ? 'Activo' : 'Inactivo'}
-                        </span>
-                      </td>
-                      <td className="p-2.5 text-[#6E7681]">
-                        {u.ultimo_login
-                          ? new Date(u.ultimo_login).toLocaleString('es-AR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })
-                          : 'Nunca'}
-                      </td>
-                      <td className="p-2.5">
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => setEditUser(u)}
-                            className="p-1 rounded text-[#6E7681] hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
-                            title="Editar usuario"
-                          >
-                            <Pencil size={12} />
-                          </button>
-                          <button
-                            onClick={() => setPwUser(u)}
-                            className="p-1 rounded text-[#6E7681] hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
-                            title="Cambiar contrasena"
-                          >
-                            <Key size={12} />
-                          </button>
-                          {!isSelf && (
-                            <button
-                              onClick={() => toggleActivo(u)}
-                              disabled={updateMut.isPending}
-                              className={`p-1 rounded transition-colors ${
-                                u.activo
-                                  ? 'text-[#6E7681] hover:text-red-400 hover:bg-red-500/10'
-                                  : 'text-[#6E7681] hover:text-emerald-400 hover:bg-emerald-500/10'
-                              }`}
-                              title={u.activo ? 'Desactivar' : 'Activar'}
-                            >
-                              {u.activo ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <p className="text-[11px] text-[#8B949E] mt-1.5">
+          Solo lectura. La gestión de usuarios (alta, baja, cambio de password, roles) se hace desde el <span className="text-blue-400 font-medium">Hub AB</span>.
+        </p>
       </div>
-    </>
+
+      {/* Tabla */}
+      {isLoading ? (
+        <div className="px-5 py-8 text-center text-[12px] text-[#6E7681]">Cargando usuarios...</div>
+      ) : usuarios.length === 0 ? (
+        <div className="px-5 py-8 text-center text-[12px] text-[#6E7681]">No hay usuarios configurados.</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-[12px]">
+            <thead>
+              <tr className="text-left text-[#6E7681] text-[10px] uppercase tracking-wider bg-[#0D1117]/40">
+                <th className="p-2.5 pl-5">Usuario</th>
+                <th className="p-2.5">Nombre</th>
+                <th className="p-2.5">Rol</th>
+                <th className="p-2.5">Empresa</th>
+                <th className="p-2.5">Estado</th>
+                <th className="p-2.5">Ultimo login</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/[0.04]">
+              {usuarios.map(u => (
+                <tr key={u.id} className="hover:bg-white/[0.02]">
+                  <td className="p-2.5 pl-5 font-mono font-medium text-[#E6EDF3]">{u.username}</td>
+                  <td className="p-2.5 text-[#E6EDF3]">{u.nombre}</td>
+                  <td className="p-2.5">
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                      u.rol === 'admin'
+                        ? 'bg-purple-500/15 text-purple-400 border border-purple-500/20'
+                        : 'bg-blue-500/15 text-blue-400 border border-blue-500/20'
+                    }`}>
+                      {u.rol === 'admin' ? 'Admin' : 'Empresa'}
+                    </span>
+                  </td>
+                  <td className="p-2.5 text-[#8B949E]">{u.empresa ?? '—'}</td>
+                  <td className="p-2.5">
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${u.activo ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${u.activo ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                      {u.activo ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </td>
+                  <td className="p-2.5 text-[#6E7681]">
+                    {u.ultimo_login
+                      ? new Date(u.ultimo_login).toLocaleString('es-AR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })
+                      : 'Nunca'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   )
 }
 
