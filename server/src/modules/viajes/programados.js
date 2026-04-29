@@ -55,6 +55,15 @@ export async function initViajesProgramados() {
 
   // Hook reactivo: cuando un viaje libre se cierra, intentar vincular en caliente
   registrarOnViajeCompletado(vincularProgramadoConLibre);
+
+  // Red de seguridad: repesca periódica cada 30 min, cubre los casos donde
+  // el hook reactivo falló silenciosamente o el server quedó sin matchear
+  // por restart entre apertura y cierre del libre.
+  setInterval(() => {
+    repescarVinculosFaltantes().catch(err =>
+      log('warn', `Repesca periódica falló: ${err.message}`)
+    );
+  }, 30 * 60 * 1000);
 }
 
 const TOLERANCIA_MATCH_MIN = 4 * 60;  // ±4h
@@ -130,27 +139,38 @@ async function repescarVinculosFaltantes() {
  * confirma una llegada.
  */
 export async function vincularProgramadoConLibre(viajeLibre) {
-  if (!viajeLibre || !viajeLibre.timestampInicio) return null;
+  if (!viajeLibre || !viajeLibre.timestampInicio) {
+    log('warn', `Match skip: libre sin timestampInicio (id=${viajeLibre?.id ?? '?'})`);
+    return null;
+  }
   const fecha  = String(viajeLibre.timestampInicio).slice(0, 10);
   const codigo = (viajeLibre.codigoEquipo || viajeLibre.codigo || viajeLibre.patente || '').toUpperCase();
   const idOrigen = viajeLibre.geocercaOrigen?.idCerca;
-  if (!fecha || !codigo || !idOrigen) return null;
+  if (!fecha || !codigo || !idOrigen) {
+    log('warn', `Match skip: libre #${viajeLibre.id} datos incompletos (fecha=${fecha} codigo=${codigo} idOrigen=${idOrigen})`);
+    return null;
+  }
 
   const programadoMs = new Date(viajeLibre.timestampInicio).getTime();
   const TOLERANCIA_MS = TOLERANCIA_MATCH_MIN * 60 * 1000;
 
+  const motivos = { fecha: 0, vinculado: 0, codigo: 0, origen: 0, fueraTolerancia: 0 };
   const candidatos = [..._cache.values()].filter(vp => {
     if (vp.cancelado) return false;
-    if (vp.fechaInicio !== fecha) return false;
-    if (vp.viajeLibreId && vp.viajeLibreId !== viajeLibre.id) return false;
+    if (vp.fechaInicio !== fecha) { motivos.fecha++; return false; }
+    if (vp.viajeLibreId && vp.viajeLibreId !== viajeLibre.id) { motivos.vinculado++; return false; }
     const vpKey = (vp.codigoEquipo || vp.patente || '').toUpperCase();
-    if (vpKey !== codigo) return false;
-    if (vp.geocercaOrigenId !== idOrigen) return false;
+    if (vpKey !== codigo) { motivos.codigo++; return false; }
+    if (vp.geocercaOrigenId !== idOrigen) { motivos.origen++; return false; }
     const vpMs = new Date(`${vp.fechaInicio}T${vp.horaInicio}-03:00`).getTime();
-    return Math.abs(vpMs - programadoMs) <= TOLERANCIA_MS;
+    if (Math.abs(vpMs - programadoMs) > TOLERANCIA_MS) { motivos.fueraTolerancia++; return false; }
+    return true;
   });
 
-  if (candidatos.length === 0) return null;
+  if (candidatos.length === 0) {
+    log('warn', `Match miss: libre #${viajeLibre.id} (${codigo} ${fecha} origen=${idOrigen}) sin candidatos | descartes: ${JSON.stringify(motivos)} | cache=${_cache.size}`);
+    return null;
+  }
 
   const idDestino = viajeLibre.geocercaDestino?.idCerca;
   candidatos.sort((a, b) => {
