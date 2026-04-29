@@ -115,7 +115,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 8078
-      DATABASE_URL: mysql://${EQUIPOS_DB_USER:-equipos_user}:${EQUIPOS_DB_PASSWORD:-equipos_2024}@fleetops_db:3306/fleetops
+      DATABASE_URL: mysql://${EQUIPOS_DB_USER:-equipos_user}:${EQUIPOS_DB_PASSWORD:-equipos_2024}@fleetops_db:3306/${EQUIPOS_DB_NAME:-activos}
       JWT_SECRET: ${EQUIPOS_JWT_SECRET:-${JWT_SECRET:-fleetops_jwt_change_me}}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
       GATEWAY_URL: http://integration-gateway:3100
