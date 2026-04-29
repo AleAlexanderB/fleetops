@@ -154,9 +154,9 @@ export async function vincularProgramadoConLibre(viajeLibre) {
   const programadoMs = new Date(viajeLibre.timestampInicio).getTime();
   const TOLERANCIA_MS = TOLERANCIA_MATCH_MIN * 60 * 1000;
 
-  const motivos = { fecha: 0, vinculado: 0, codigo: 0, origen: 0, fueraTolerancia: 0 };
+  const motivos = { cancelado: 0, fecha: 0, vinculado: 0, codigo: 0, origen: 0, fueraTolerancia: 0 };
   const candidatos = [..._cache.values()].filter(vp => {
-    if (vp.cancelado) return false;
+    if (vp.cancelado) { motivos.cancelado++; return false; }
     if (vp.fechaInicio !== fecha) { motivos.fecha++; return false; }
     if (vp.viajeLibreId && vp.viajeLibreId !== viajeLibre.id) { motivos.vinculado++; return false; }
     const vpKey = (vp.codigoEquipo || vp.patente || '').toUpperCase();
@@ -168,7 +168,12 @@ export async function vincularProgramadoConLibre(viajeLibre) {
   });
 
   if (candidatos.length === 0) {
-    log('warn', `Match miss: libre #${viajeLibre.id} (${codigo} ${fecha} origen=${idOrigen}) sin candidatos | descartes: ${JSON.stringify(motivos)} | cache=${_cache.size}`);
+    // Sospechoso = había programados que coincidían en fecha+código pero los descartamos
+    // por geocerca de origen distinta o fuera de tolerancia. Esos casos pueden indicar
+    // un bug. El resto (cancelados, otros días, otros equipos) es ruido normal.
+    const sospechoso = motivos.origen > 0 || motivos.fueraTolerancia > 0;
+    log(sospechoso ? 'warn' : 'info',
+      `Match miss: libre #${viajeLibre.id} (${codigo} ${fecha} origen=${idOrigen}) sin candidatos | descartes: ${JSON.stringify(motivos)} | cache=${_cache.size}`);
     return null;
   }
 
