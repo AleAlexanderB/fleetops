@@ -243,7 +243,7 @@ export default function Dashboard() {
                     {v.geocercaOrigen?.nombre ?? '?'} → {v.geocercaDestino?.nombre ?? '?'}
                   </p>
                   <p className="text-[11px] text-[#8B949E] mt-0.5 flex items-center gap-1.5">
-                    {v.etiqueta ?? v.patente ?? "—"}
+                    {v.codigoEquipo ?? v.etiqueta ?? v.patente ?? "—"}
                     {v.chofer && <span className="text-[#6E7681]">· {v.chofer}</span>}
                     {v.division && <span className={`badge ${divisionClass(v.division)} text-[9px]`}>{v.division}{v.subgrupo ? ` · ${v.subgrupo}` : ''}</span>}
                   </p>

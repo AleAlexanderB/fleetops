@@ -24,6 +24,14 @@ const DEFAULT_DIVISIONES = [
   'Obras', 'Logística', 'Corralón', 'Taller',
 ];
 
+// Equipos (001-EQUIPOS) es la fuente de verdad del catálogo. Cargamos al inicio
+// y cada REFRESH_MS, manteniendo el último valor si Equipos cae.
+const EQUIPOS_URL    = process.env.EQUIPOS_URL || 'http://equipos_app:8078';
+const SYNC_KEY       = process.env.INTERNAL_SYNC_KEY;
+const REFRESH_MS     = 5 * 60 * 1000;
+const FETCH_TIMEOUT  = 8_000;
+let _equiposCargado  = false;   // true si alguna vez logramos cargar de Equipos
+
 // Multi-empresa: config por empresa
 // _divisionesPorEmpresa = { 'Corralon el Mercado': ['Hormigón', ...], 'VIAP': [...] }
 // _subdivisionesPorEmpresa = { 'Corralon el Mercado': { 'Hormigón': ['Bombas'] }, 'VIAP': { ... } }
@@ -126,20 +134,31 @@ async function cargarDesdeDB() {
   const pool = db();
   if (!pool) return false;
   try {
+    // Fuente de verdad: tabla espejo poblada por sync-equipos.js desde
+    // 001-EQUIPOS. La asignación equipo→UN ya no es local — Equipos manda.
     const [rows] = await pool.execute(
-      'SELECT codigo_equipo, patente, division, subgrupo FROM fleetops_divisiones'
+      `SELECT codigo_equipo, patente,
+              unidad_negocio_nombre AS division,
+              subdivision_nombre    AS subgrupo
+         FROM fleetops_equipo_asignacion
+        WHERE unidad_negocio_nombre IS NOT NULL`
     );
     _cache = {};
     for (const row of rows) {
       const key = row.codigo_equipo || row.patente;
       if (key) _cache[key] = { division: row.division, subgrupo: row.subgrupo };
     }
-    log('info', `MySQL: ${rows.length} asignaciones cargadas`);
+    log('info', `MySQL (espejo Equipos): ${rows.length} asignaciones cargadas`);
     return true;
   } catch (err) {
     log('error', `Error al cargar divisiones: ${err.message}`);
     return false;
   }
+}
+
+/** Recargar el cache desde la tabla espejo. Llamar tras un sync exitoso. */
+export async function recargarAsignaciones() {
+  return cargarDesdeDB();
 }
 
 async function cargarConfigDesdeBD() {
@@ -250,26 +269,75 @@ async function eliminarConfigDivisionDB(empresa, nombre) {
   return false;
 }
 
+// ── Cliente Equipos (fuente de verdad del catálogo) ──────────────────────────
+
+async function cargarDesdeEquipos() {
+  if (!SYNC_KEY) {
+    log('warn', 'INTERNAL_SYNC_KEY no configurada — no puedo consultar Equipos');
+    return false;
+  }
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT);
+  try {
+    const res = await fetch(`${EQUIPOS_URL}/api/config/unidades-negocio`, {
+      headers: { 'X-Internal-Api-Key': SYNC_KEY, accept: 'application/json' },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || 'respuesta no OK');
+
+    const unidades = json.data?.unidades ?? [];
+    if (unidades.length === 0) {
+      log('warn', 'Equipos devolvió 0 unidades de negocio');
+      return false;
+    }
+
+    // Catálogo único compartido — no segmentamos por empresa de FleetOps porque
+    // Equipos ya es el sistema canónico (multitenancy a nivel Hub).
+    const divs = unidades.map(u => u.nombre);
+    const subs = {};
+    for (const u of unidades) {
+      subs[u.nombre] = (u.subdivisiones || []).map(s => s.nombre);
+    }
+    _divisionesPorEmpresa = { _default: divs };
+    _subdivisionesPorEmpresa = { _default: subs };
+    _equiposCargado = true;
+    log('info', `Equipos: ${divs.length} unidades de negocio cargadas (${divs.join(', ')})`);
+    return true;
+  } catch (err) {
+    log('warn', `No se pudo cargar de Equipos: ${err.message}`);
+    return false;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 // ── API pública ───────────────────────────────────────────────────────────────
 
 export async function initDivisiones() {
   log('info', 'Iniciando módulo de divisiones...');
 
-  // Cargar config de divisiones (DB primero, luego JSON, luego defaults)
-  const configFromDB = await cargarConfigDesdeBD();
-  if (!configFromDB) {
-    cargarConfigDesdeJSON();
-    // Fallback: poner todo en _default
-    if (Object.keys(_divisionesPorEmpresa).length === 0) {
-      _divisionesPorEmpresa['_default'] = [...DEFAULT_DIVISIONES];
-      _subdivisionesPorEmpresa['_default'] = {};
-      for (const d of DEFAULT_DIVISIONES) {
-        _subdivisionesPorEmpresa['_default'][d] = [];
+  // 1) Catálogo: Equipos es fuente de verdad. Si falla, fallback a config local.
+  const equiposOk = await cargarDesdeEquipos();
+  if (!equiposOk) {
+    const configFromDB = await cargarConfigDesdeBD();
+    if (!configFromDB) {
+      cargarConfigDesdeJSON();
+      if (Object.keys(_divisionesPorEmpresa).length === 0) {
+        _divisionesPorEmpresa['_default'] = [...DEFAULT_DIVISIONES];
+        _subdivisionesPorEmpresa['_default'] = {};
+        for (const d of DEFAULT_DIVISIONES) {
+          _subdivisionesPorEmpresa['_default'][d] = [];
+        }
       }
     }
   }
 
-  // Cargar asignaciones equipo → división
+  // 2) Refresh periódico — si Equipos vuelve después de un fallo, recuperamos.
+  setInterval(() => { cargarDesdeEquipos().catch(() => {}); }, REFRESH_MS);
+
+  // 3) Cargar asignaciones equipo → división (sigue siendo local hasta Paso 3)
   const fromDB = await cargarDesdeDB();
   if (!fromDB) cargarDesdeJSON();
 }

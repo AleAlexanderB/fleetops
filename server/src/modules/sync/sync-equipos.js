@@ -13,6 +13,7 @@
 
 import { db } from '../../database/database.js';
 import { marcarSync } from './sync.js';
+import { recargarAsignaciones } from '../divisiones/divisiones.js';
 
 const EQUIPOS_URL = process.env.EQUIPOS_URL || 'http://equipos_app:8078';
 const SYNC_KEY    = process.env.INTERNAL_SYNC_KEY;
@@ -109,6 +110,7 @@ export async function sincronizarEquiposDesdeEquipos() {
 
     log('info', `OK · ${cantidad}/${total} asignaciones sincronizadas desde Equipos`);
     await marcarSync(ORIGEN, true, cantidad, null);
+    await recargarAsignaciones().catch(e => log('warn', `recargar cache divisiones: ${e.message}`));
   } catch (err) {
     log('warn', `Falló: ${err.message} — sigue con copia local`);
     await marcarSync(ORIGEN, false, cantidad, err.message);

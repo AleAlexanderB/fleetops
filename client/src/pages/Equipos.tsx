@@ -1,120 +1,17 @@
-import { useState } from 'react'
-import { useVehiculos, useSetDivision, useSetEnTaller, useDivisionesValidas, estadoBadgeClass, estadoLabel, divisionClass } from '../hooks/hooks'
+import { useVehiculos, useSetEnTaller, estadoBadgeClass, estadoLabel, divisionClass } from '../hooks/hooks'
 import { useEmpresa } from '../components/layout/Layout'
 import { useAuth } from '../context/AuthContext'
 import type { Vehiculo } from '../api/api'
-import { Check, X, Pencil, MapPin, Wrench } from 'lucide-react'
+import { MapPin, Wrench } from 'lucide-react'
 import ColumnFilter, { useColumnFilters, uniqueValues } from '../components/ColumnFilter'
-
-// ── Modal de asignación de división ──────────────────────────────────────────
-// Reemplaza el editor inline que no era visible — ahora es un modal claro
-
-interface DivisionModalProps {
-  vehiculo: Vehiculo
-  onClose:  () => void
-}
-
-function DivisionModal({ vehiculo, onClose }: DivisionModalProps) {
-  const { data: validas }              = useDivisionesValidas()
-  const { mutate, isPending, isError } = useSetDivision()
-
-  const [div, setDiv] = useState(vehiculo.division ?? '')
-  const [sub, setSub] = useState(vehiculo.subgrupo ?? '')
-
-  const divisiones = validas?.divisiones ?? []
-  const subdivisiones: Record<string, string[]> = validas?.subdivisiones ?? {}
-  const subsParaDiv = div ? (subdivisiones[div] ?? []) : []
-
-  function guardar() {
-    mutate(
-      { codigo: vehiculo.codigo || vehiculo.etiqueta, division: div, subgrupo: subsParaDiv.length > 0 ? sub : undefined },
-      { onSuccess: onClose }
-    )
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#161B22] border border-white/[0.12] rounded-xl w-full max-w-sm shadow-2xl">
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
-          <div>
-            <h2 className="text-[14px] font-semibold">Asignar unidad de negocio</h2>
-            <p className="text-[11px] text-[#6E7681] mt-0.5">
-              <span className="font-mono font-semibold">{vehiculo.codigo}</span>
-              {vehiculo.patente && vehiculo.patente !== vehiculo.codigo &&
-                <span className="ml-1.5">{vehiculo.patente}</span>}
-            </p>
-          </div>
-          <button onClick={onClose} className="text-[#6E7681] hover:text-[#E6EDF3] transition-colors">
-            <X size={16} />
-          </button>
-        </div>
-
-        {/* Form */}
-        <div className="p-5 flex flex-col gap-4">
-
-          {/* División */}
-          <label className="block">
-            <span className="text-[11px] text-[#8B949E] mb-1.5 block uppercase tracking-wider">Unidad de negocio</span>
-            <select
-              className="input w-full"
-              value={div}
-              onChange={e => { setDiv(e.target.value); setSub('') }}
-            >
-              <option value="">Sin unidad de negocio</option>
-              {divisiones.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </label>
-
-          {/* Subgrupo — para cualquier división que tenga subdivisiones */}
-          {div && subsParaDiv.length > 0 && (
-            <label className="block">
-              <span className="text-[11px] text-[#8B949E] mb-1.5 block uppercase tracking-wider">
-                Subgrupo
-              </span>
-              <select
-                className="input w-full"
-                value={sub}
-                onChange={e => setSub(e.target.value)}
-              >
-                <option value="">Sin subgrupo</option>
-                {subsParaDiv.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <p className="text-[10px] text-[#6E7681] mt-1.5">
-                Subgrupo dentro de la unidad de negocio {div}
-              </p>
-            </label>
-          )}
-
-          {isError && (
-            <p className="text-[12px] text-red-400 bg-red-500/10 rounded-md px-3 py-2">
-              Error al guardar. Intentá de nuevo.
-            </p>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex justify-end gap-2 px-5 py-4 border-t border-white/[0.07]">
-          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-primary" onClick={guardar} disabled={isPending}>
-            {isPending ? 'Guardando...' : <><Check size={12} />Guardar</>}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ── Fila de equipo ────────────────────────────────────────────────────────────
 
 function EquipoRow({ v, isAdmin }: { v: Vehiculo; isAdmin: boolean }) {
-  const [showModal, setShowModal] = useState(false)
   const tallerMutation = useSetEnTaller()
 
   return (
     <>
-      {showModal && <DivisionModal vehiculo={v} onClose={() => setShowModal(false)} />}
       <tr>
         {/* Código interno + patente */}
         <td>
@@ -132,20 +29,11 @@ function EquipoRow({ v, isAdmin }: { v: Vehiculo; isAdmin: boolean }) {
           {(v as any).grupoRedGps || '—'}
         </td>
 
-        {/* División — botón de lápiz siempre visible */}
+        {/* División — sólo lectura, fuente de verdad: sistema Equipos */}
         <td>
-          <div className="flex items-center gap-2">
-            {v.division
-              ? <span className={`badge ${divisionClass(v.division)}`}>{v.division}</span>
-              : <span className="text-[#6E7681] text-[11px]">Sin unidad de negocio</span>}
-            <button
-              onClick={() => setShowModal(true)}
-              className="text-[#6E7681] hover:text-[#8B949E] transition-colors p-0.5 rounded"
-              title="Asignar unidad de negocio"
-            >
-              <Pencil size={11} />
-            </button>
-          </div>
+          {v.division
+            ? <span className={`badge ${divisionClass(v.division)}`}>{v.division}</span>
+            : <span className="text-[#6E7681] text-[11px]" title="Asignar en sistema Equipos">Sin unidad de negocio</span>}
         </td>
 
         {/* Subgrupo */}

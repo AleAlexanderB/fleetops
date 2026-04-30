@@ -68,15 +68,10 @@ import {
   getViajesProgramadosDB,
 } from './modules/viajes/programados.js';
 
-// Divisiones
+// Divisiones (read-only — la fuente de verdad es 001-EQUIPOS)
 import {
-  setDivision,
   getAllDivisiones,
   getDivisionesValidas,
-  agregarDivision,
-  eliminarDivision,
-  agregarSubdivision,
-  eliminarSubdivision,
 } from './modules/divisiones/divisiones.js';
 
 // Alertas
@@ -1067,81 +1062,18 @@ router.get('/divisiones/validas', (req, res) => {
   res.json({ ok: true, data: getDivisionesValidas(empresa || null) });
 });
 
-router.put('/divisiones/:codigo', requireAdmin, async (req, res) => {
-  try {
-    let codigo = decodeURIComponent(req.params.codigo);
-    if (!getVehiculoPorCodigo(codigo)) {
-      const porPatente = getVehiculoPorPatente(codigo);
-      if (porPatente) codigo = porPatente.codigo;
-    }
-    const { division, subgrupo } = req.body;
-    const resultado = await setDivision(codigo, division, subgrupo);
-    res.json({ ok: true, data: resultado });
-  } catch (err) {
-    res.status(400).json({ ok: false, error: err.message });
-  }
-});
-
-// ── Configuracion dinamica de divisiones ─────────────────────────────────────
-
-router.post('/divisiones/config', async (req, res) => {
-  try {
-    const { nombre, empresa } = req.body;
-    if (!empresa) return res.status(400).json({ ok: false, error: 'Empresa requerida' });
-    const result = await agregarDivision(nombre, empresa);
-    res.status(201).json({ ok: true, data: result });
-  } catch (err) {
-    res.status(400).json({ ok: false, error: err.message });
-  }
-});
-
-router.delete('/divisiones/config/:nombre', async (req, res) => {
-  try {
-    const nombre = decodeURIComponent(req.params.nombre);
-    const empresa = req.query.empresa;
-    if (!empresa) return res.status(400).json({ ok: false, error: 'Empresa requerida' });
-
-    // Verificar que no haya equipos de ESTA empresa asignados a la division
-    const vehiculosEmpresa = getVehiculos(empresa);
-    const equiposConDivision = vehiculosEmpresa.filter(v => v.division === nombre);
-    if (equiposConDivision.length > 0) {
-      return res.status(400).json({
-        ok: false,
-        error: `No se puede eliminar "${nombre}": tiene ${equiposConDivision.length} equipo(s) asignado(s) en ${empresa}.`,
-      });
-    }
-
-    const result = await eliminarDivision(nombre, empresa);
-    res.json({ ok: true, data: result });
-  } catch (err) {
-    res.status(400).json({ ok: false, error: err.message });
-  }
-});
-
-router.post('/divisiones/config/:division/subdivisiones', async (req, res) => {
-  try {
-    const division = decodeURIComponent(req.params.division);
-    const { nombre, empresa } = req.body;
-    if (!empresa) return res.status(400).json({ ok: false, error: 'Empresa requerida' });
-    const result = await agregarSubdivision(division, nombre, empresa);
-    res.status(201).json({ ok: true, data: result });
-  } catch (err) {
-    res.status(400).json({ ok: false, error: err.message });
-  }
-});
-
-router.delete('/divisiones/config/:division/subdivisiones/:nombre', async (req, res) => {
-  try {
-    const division = decodeURIComponent(req.params.division);
-    const nombre = decodeURIComponent(req.params.nombre);
-    const empresa = req.query.empresa;
-    if (!empresa) return res.status(400).json({ ok: false, error: 'Empresa requerida' });
-    const result = await eliminarSubdivision(division, nombre, empresa);
-    res.json({ ok: true, data: result });
-  } catch (err) {
-    res.status(400).json({ ok: false, error: err.message });
-  }
-});
+// Endpoints de escritura deshabilitados — la fuente de verdad es 001-EQUIPOS.
+// El catálogo de UN y la asignación equipo→UN se manejan allá; FleetOps solo
+// lee vía sync-equipos.js cada 10 min.
+const READ_ONLY_RESPONSE = {
+  ok: false,
+  error: 'Las unidades de negocio se gestionan en el sistema Equipos. FleetOps es solo lectura.',
+};
+router.put('/divisiones/:codigo',                                       (_req, res) => res.status(410).json(READ_ONLY_RESPONSE));
+router.post('/divisiones/config',                                       (_req, res) => res.status(410).json(READ_ONLY_RESPONSE));
+router.delete('/divisiones/config/:nombre',                             (_req, res) => res.status(410).json(READ_ONLY_RESPONSE));
+router.post('/divisiones/config/:division/subdivisiones',               (_req, res) => res.status(410).json(READ_ONLY_RESPONSE));
+router.delete('/divisiones/config/:division/subdivisiones/:nombre',     (_req, res) => res.status(410).json(READ_ONLY_RESPONSE));
 
 
 // ── Rutas conocidas ─────────────────────────────────────────────────────────

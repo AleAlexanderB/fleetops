@@ -144,33 +144,43 @@ export default function ViajesLibres() {
 
   // Unificar datos según modo
   const { allViajes, viajes, resumen, totalPages } = useMemo(() => {
-    if (esHoy) {
-      const all = [
-        ...(dataDia?.enCurso    ?? []),
-        ...(dataDia?.completados ?? []),
-      ]
-      return {
-        allViajes:  all,
-        viajes:     applyFilters(all),
-        resumen:    dataDia?.resumen,
-        totalPages: 1,
-      }
-    } else {
-      const all = dataHist?.data ?? []
-      const total = dataHist?.total ?? 0
-      return {
-        allViajes:  all,
-        viajes:     applyFilters(all),
-        resumen:    {
-          total:       total,
-          completados: all.filter(v => v.estado === 'completado').length,
-          enCurso:     all.filter(v => v.estado === 'en_curso').length,
-          kmTotal:     all.reduce((s, v) => s + (v.kmRecorridos || 0), 0),
-        },
-        totalPages: Math.max(1, Math.ceil(total / pageSize)),
-      }
+    const all = esHoy
+      ? [...(dataDia?.enCurso ?? []), ...(dataDia?.completados ?? [])]
+      : (dataHist?.data ?? [])
+    const filtrados = applyFilters(all)
+    const total = esHoy ? filtrados.length : (dataHist?.total ?? 0)
+    return {
+      allViajes:  all,
+      viajes:     filtrados,
+      resumen: {
+        total,
+        completados: filtrados.filter(v => v.estado === 'completado').length,
+        enCurso:     filtrados.filter(v => v.estado === 'en_curso').length,
+        kmTotal:     filtrados.reduce((s, v) => s + (v.kmRecorridos || 0), 0),
+      },
+      totalPages: esHoy ? 1 : Math.max(1, Math.ceil(total / pageSize)),
     }
   }, [esHoy, dataDia, dataHist, filters, divisionFiltro, pageSize])
+
+  // Resumen por unidad de negocio (sobre viajes filtrados).
+  // Incluye TODAS las UN del config (en 0 si no hay viajes), más "Sin unidad
+  // de negocio" si hay viajes sin UN asignada.
+  const resumenPorDivision = useMemo(() => {
+    const acc: Record<string, { viajes: number; km: number }> = {}
+    for (const d of divConfig?.divisiones ?? []) acc[d] = { viajes: 0, km: 0 }
+    for (const v of viajes) {
+      const d = v.division || 'Sin unidad de negocio'
+      if (!acc[d]) acc[d] = { viajes: 0, km: 0 }
+      acc[d].viajes++
+      acc[d].km += v.kmRecorridos || 0
+    }
+    return Object.entries(acc).sort((a, b) => {
+      // Sin unidad de negocio siempre al final
+      if (a[0] === 'Sin unidad de negocio') return 1
+      if (b[0] === 'Sin unidad de negocio') return -1
+      return b[1].viajes - a[1].viajes
+    })
+  }, [viajes, divConfig])
 
   const handleRango = (d: string, h: string) => {
     setDesde(d); setHasta(h); setPage(1)
@@ -244,31 +254,33 @@ export default function ViajesLibres() {
         </div>
       </div>
 
-      {/* Resumen por división */}
-      {(() => {
-        const counts: Record<string, number> = {}
-        for (const v of viajes) {
-          const d = v.division || 'Sin unidad de negocio'
-          counts[d] = (counts[d] || 0) + 1
-        }
-        const entries = Object.entries(counts).sort((a, b) => b[1] - a[1])
-        if (entries.length === 0) return null
-        return (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] text-[#6E7681] mr-1">Por unidad de negocio:</span>
-            {entries.map(([div, count]) => (
-              <span
+      {/* Stat-cards por unidad de negocio (clickeables como filtro) */}
+      {resumenPorDivision.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {resumenPorDivision.map(([div, data]) => {
+            const activo = divisionFiltro === div
+            const atenuado = divisionFiltro && divisionFiltro !== div
+            const esSin = div === 'Sin unidad de negocio'
+            return (
+              <button
                 key={div}
-                className={`badge ${div === 'Sin unidad de negocio' ? 'badge-gray' : divisionClass(div)} text-[11px] px-2.5 py-1 cursor-pointer transition-opacity ${divisionFiltro && divisionFiltro !== div ? 'opacity-40' : ''}`}
-                onClick={() => setDivisionFiltro(prev => prev === div ? '' : (div === 'Sin unidad de negocio' ? '' : div))}
-                title={`Filtrar por ${div}`}
+                onClick={() => setDivisionFiltro(prev => prev === div ? '' : (esSin ? '' : div))}
+                disabled={esSin}
+                className={`stat-card text-left transition-all ${
+                  activo ? 'ring-2 ring-blue-400/50' : ''
+                } ${atenuado ? 'opacity-40' : ''} ${esSin ? 'cursor-default' : 'cursor-pointer hover:bg-white/[0.03]'}`}
+                title={esSin ? 'Viajes sin unidad de negocio asignada' : `Filtrar por ${div}`}
               >
-                {div} <span className="font-bold ml-1">{count}</span>
-              </span>
-            ))}
-          </div>
-        )
-      })()}
+                <p className="stat-label flex items-center gap-1.5">
+                  <span className={`badge ${esSin ? 'badge-gray' : divisionClass(div)} text-[10px] px-1.5 py-0`}>{div}</span>
+                </p>
+                <p className="stat-value text-blue-400">{data.viajes}</p>
+                <p className="text-[11px] text-[#6E7681] mt-0.5">{data.km.toFixed(1)} km</p>
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {/* Tabla */}
       <div className="card">

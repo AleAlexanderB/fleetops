@@ -51,7 +51,7 @@ function InformeDia() {
 
   // Agrupar viajes por equipo
   const porEquipo = todosViajes.reduce<Record<string, { viajes: number; km: number; chofer: string | null; division: string | null }>>((acc, v) => {
-    const key = v.etiqueta ?? v.patente ?? v.codigoEquipo ?? '?'
+    const key = v.codigoEquipo ?? v.etiqueta ?? v.patente ?? '?'
     if (!acc[key]) acc[key] = { viajes: 0, km: 0, chofer: v.chofer, division: v.division }
     acc[key].viajes++
     acc[key].km += v.kmRecorridos ?? 0
@@ -232,8 +232,8 @@ function InformeSinReportar() {
                 {sinReportar.map(v => (
                   <tr key={v.id}>
                     <td>
-                      <p className="font-semibold">{v.etiqueta}</p>
-                      <p className="text-[10px] text-[#6E7681]">{v.codigo !== v.etiqueta ? v.codigo : ''} {[v.marca, v.modelo].filter(Boolean).join(' ')}</p>
+                      <p className="font-semibold">{v.codigo || v.etiqueta}</p>
+                      <p className="text-[10px] text-[#6E7681]">{v.etiqueta && v.etiqueta !== v.codigo ? v.etiqueta : ''} {[v.marca, v.modelo].filter(Boolean).join(' ')}</p>
                     </td>
                     <td className="text-[11px] text-[#8B949E]">{(v as any).grupoRedGps || '—'}</td>
                     <td>{v.division ? <span className={`badge ${divisionClass(v.division)}`}>{v.division}</span> : <span className="text-[#6E7681]">—</span>}</td>
@@ -296,7 +296,7 @@ function InformeHistorico() {
   const viajes = hist?.data ?? []
 
   const porEquipo = viajes.reduce<Record<string, { viajes: number; km: number; chofer: string | null; division: string | null }>>((acc, v) => {
-    const key = v.etiqueta ?? v.patente ?? '?'
+    const key = v.codigoEquipo ?? v.etiqueta ?? v.patente ?? '?'
     if (!acc[key]) acc[key] = { viajes: 0, km: 0, chofer: v.chofer, division: v.division }
     acc[key].viajes++
     acc[key].km += v.kmRecorridos ?? 0
@@ -831,7 +831,6 @@ function InformeLiquidacion() {
                           <tr className="text-left text-[#6E7681] text-[10px] uppercase tracking-wider bg-[#0D1117]/40">
                             <th className="p-2 pl-3">Fecha</th>
                             <th className="p-2">Equipo</th>
-                            <th className="p-2">Patente</th>
                             <th className="p-2">Unidad de negocio</th>
                             <th className="p-2">Origen</th>
                             <th className="p-2">Destino</th>
@@ -850,8 +849,12 @@ function InformeLiquidacion() {
                                     })
                                   : '—'}
                               </td>
-                              <td className="p-2 font-medium text-[#E6EDF3]">{v.codigoEquipo || '—'}</td>
-                              <td className="p-2 text-[#8B949E]">{v.patente || '—'}</td>
+                              <td className="p-2">
+                                <div className="font-medium text-[#E6EDF3]">{v.codigoEquipo || v.patente || '—'}</div>
+                                {v.codigoEquipo && v.patente && (
+                                  <div className="text-[10px] text-[#6E7681]">{v.patente}</div>
+                                )}
+                              </td>
                               <td className="p-2">
                                 {v.division && <span className={`badge text-[10px] ${divisionClass(v.division)}`}>{v.division}</span>}
                               </td>
@@ -866,7 +869,7 @@ function InformeLiquidacion() {
                           ))}
                           {/* Fila total */}
                           <tr className="bg-[#0D1117]/60 font-semibold">
-                            <td className="p-2 pl-3" colSpan={6}>
+                            <td className="p-2 pl-3" colSpan={5}>
                               <span className="text-[#8B949E]">Total {grupo.chofer}</span>
                             </td>
                             <td className="p-2 text-center text-amber-400">
@@ -1065,9 +1068,9 @@ function InformeRendimiento() {
                   {vehiculos.map((v, i) => (
                     <tr key={v.codigo || i} className="hover:bg-white/[0.02]">
                       <td className="p-2.5">
-                        <div className="font-medium text-[#E6EDF3]">{v.patente || v.codigo}</div>
-                        {v.patente && v.codigo && (
-                          <div className="text-[10px] text-[#6E7681]">{v.codigo}</div>
+                        <div className="font-medium text-[#E6EDF3]">{v.codigo || v.patente}</div>
+                        {v.codigo && v.patente && (
+                          <div className="text-[10px] text-[#6E7681]">{v.patente}</div>
                         )}
                       </td>
                       <td className="p-2.5">
