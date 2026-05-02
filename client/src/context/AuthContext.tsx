@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { api } from '../api/api'
+import { redirigirAlHub } from '../lib/hubUrl'
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -16,7 +17,6 @@ export interface AuthContextType {
   token: string | null
   isAdmin: boolean
   isLoading: boolean
-  login: (username: string, password: string) => Promise<void>
   logout: () => void
 }
 
@@ -28,7 +28,6 @@ const AuthContext = createContext<AuthContextType>({
   token: null,
   isAdmin: false,
   isLoading: true,
-  login: async () => {},
   logout: () => {},
 })
 
@@ -47,15 +46,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(TOKEN_KEY)
     setToken(null)
     setUser(null)
+    redirigirAlHub()
   }, [])
 
   // Validar token al montar
   // Prioridad: 1) hub_token en URL (login desde el hub), 2) token guardado en localStorage
+  // ADR-007: si no hay sesión válida, redirigir al Hub (no hay login local)
   useEffect(() => {
     const params   = new URLSearchParams(window.location.search)
     const hubToken = params.get(HUB_TOKEN_PARAM)
 
-    // Si llegó un token desde el hub, guardarlo y limpiar la URL
     if (hubToken) {
       localStorage.setItem(TOKEN_KEY, hubToken)
       params.delete(HUB_TOKEN_PARAM)
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const stored = localStorage.getItem(TOKEN_KEY)
     if (!stored) {
-      setIsLoading(false)
+      redirigirAlHub()
       return
     }
 
@@ -73,25 +73,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((data: { user: User }) => {
         setUser(data.user)
         setToken(stored)
+        setIsLoading(false)
       })
       .catch(() => {
         localStorage.removeItem(TOKEN_KEY)
-        setToken(null)
-        setUser(null)
+        redirigirAlHub()
       })
-      .finally(() => setIsLoading(false))
-  }, [])
-
-  const login = useCallback(async (username: string, password: string) => {
-    const data = await api.auth.login(username, password)
-    const { token: newToken, user: newUser } = data as { token: string; user: User }
-    localStorage.setItem(TOKEN_KEY, newToken)
-    setToken(newToken)
-    setUser(newUser)
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, token, isAdmin, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, isAdmin, isLoading, logout }}>
       {children}
     </AuthContext.Provider>
   )

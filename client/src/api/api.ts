@@ -25,17 +25,16 @@ http.interceptors.request.use(config => {
   return config
 })
 
-// ── Interceptor: 401 → limpiar token y redirigir a login ────────────────────
+// ── Interceptor: 401 → limpiar token y redirigir al Hub (ADR-007) ───────────
+
+import { redirigirAlHub } from '../lib/hubUrl'
 
 http.interceptors.response.use(
   res => res,
   error => {
     if (error.response?.status === 401) {
       localStorage.removeItem('fleetops_token')
-      // Solo redirigir si no estamos ya en la raíz (evitar loops)
-      if (window.location.pathname !== '/') {
-        window.location.href = '/'
-      }
+      redirigirAlHub()
     }
     return Promise.reject(error)
   }
