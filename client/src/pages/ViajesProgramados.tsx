@@ -38,6 +38,8 @@ interface ViajeProg {
   distanciaEstimadaKm: number | null
   salidaReal: string | null
   llegadaReal: string | null
+  salidaDestinoReal: string | null
+  descargaRealMin: number | null
   duracionRealMin: number | null
   demoraSalidaMin: number | null
   kmReales: number | null
@@ -705,19 +707,47 @@ function TablaViajes({ viajes, onEdit, onCancel, showExpand = true }: {
                   </div>
                 </td>
                 {/* Descarga: programado vs real */}
+                {/* Real = tiempo entre llegada al destino y salida hacia el siguiente.
+                    Si todavía no salió, muestra tiempo transcurrido en vivo. */}
                 <td className="text-[11px]">
-                  {v.estado === 'cumplido' || v.estado === 'en_curso'
-                    ? <div className="flex flex-col gap-0.5">
-                        <span className="text-[#6E7681] text-[10px]">{v.tiempoEnDestinoMin ?? 60}' prog.</span>
-                        {v.llegadaReal
-                          ? <span className="text-[#E6EDF3] font-semibold">—</span>
-                          : v.estado === 'en_curso' && v.estadoVehiculo
-                            ? <span className={`text-[10px] ${v.estadoVehiculo === 'en_ruta' ? 'text-blue-400' : 'text-amber-400'}`}>
-                                {v.estadoVehiculo === 'en_ruta' ? 'En viaje' : 'En destino'}
-                              </span>
-                            : null}
+                  {(() => {
+                    const prog = v.tiempoEnDestinoMin ?? 60
+                    if (v.estado !== 'cumplido' && v.estado !== 'en_curso') {
+                      return <span className="text-[#6E7681]">{prog}'</span>
+                    }
+                    if (!v.llegadaReal) {
+                      // Aún no llegó: mostrar programado + estado
+                      return (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[#6E7681] text-[10px]">{prog}' prog.</span>
+                          {v.estado === 'en_curso' && v.estadoVehiculo === 'en_ruta' && (
+                            <span className="text-[10px] text-blue-400">En viaje</span>
+                          )}
+                        </div>
+                      )
+                    }
+                    // Llegó: tenemos descargaRealMin (cerrada) o tiempo en vivo (sigue en destino)
+                    let real: number
+                    let cerrada: boolean
+                    if (v.descargaRealMin != null) {
+                      real = v.descargaRealMin
+                      cerrada = true
+                    } else {
+                      real = Math.max(0, Math.round((Date.now() - new Date(v.llegadaReal).getTime()) / 60000))
+                      cerrada = false
+                    }
+                    const ratio = real / Math.max(1, prog)
+                    const cls = ratio <= 1 ? 'text-emerald-400' : ratio <= 1.25 ? 'text-amber-400' : 'text-red-400'
+                    return (
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[#6E7681] text-[10px]">{prog}' prog.</span>
+                        <span className={`font-semibold ${cls}`}>
+                          {real}'{cerrada ? '' : ' ⏱'}
+                        </span>
+                        {!cerrada && <span className="text-[9px] text-amber-400/80">en destino</span>}
                       </div>
-                    : <span className="text-[#6E7681]">{v.tiempoEnDestinoMin ?? 60}'</span>}
+                    )
+                  })()}
                 </td>
                 {/* Dist. destino */}
                 <td>

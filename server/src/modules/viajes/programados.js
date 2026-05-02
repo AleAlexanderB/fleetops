@@ -6,7 +6,7 @@
  */
 
 import { db }                            from '../../database/database.js';
-import { getViajesEnCurso, getViajesCompletados, getPosicionActual, getKmRecorridosEnCurso, registrarOnViajeCompletado } from './libres.js';
+import { getViajesEnCurso, getViajesCompletados, getPosicionActual, getKmRecorridosEnCurso, registrarOnViajeCompletado, registrarOnViajeIniciado } from './libres.js';
 import { obtenerDistanciaRuta, actualizarRutaReal, getDistanciaConocida, getTiempoEstimado } from './rutas.js';
 import { getGeocercas } from '../redgps/geocercas.js';
 import { getVehiculoPorCodigo, getVehiculoPorPatente } from '../redgps/vehiculos.js';
@@ -55,6 +55,10 @@ export async function initViajesProgramados() {
 
   // Hook reactivo: cuando un viaje libre se cierra, intentar vincular en caliente
   registrarOnViajeCompletado(vincularProgramadoConLibre);
+
+  // Hook reactivo: cuando un viaje libre arranca (sale de una geocerca), si
+  // hay un VP cumplido cuyo destino == esa geocerca, cerrar la descarga.
+  registrarOnViajeIniciado(marcarFinDescarga);
 
   // Red de seguridad: repesca periódica cada 30 min, cubre los casos donde
   // el hook reactivo falló silenciosamente o el server quedó sin matchear
@@ -247,6 +251,8 @@ function dbRowToViaje(row) {
     viajeLibreId:          row.id_viaje_libre,
     salidaReal:            row.salida_real?.toISOString?.()  ?? row.salida_real,
     llegadaReal:           row.llegada_real?.toISOString?.() ?? row.llegada_real,
+    salidaDestinoReal:     row.salida_destino_real?.toISOString?.() ?? row.salida_destino_real,
+    descargaRealMin:       row.descarga_real_min,
     duracionRealMin:       row.duracion_real_min,
     demoraSalidaMin:       row.demora_salida_min,
     kmReales:              row.km_reales ? parseFloat(row.km_reales) : null,
@@ -341,6 +347,8 @@ async function actualizarEnDB(id, fields) {
     viajeLibreId:          'id_viaje_libre',
     salidaReal:            'salida_real',
     llegadaReal:           'llegada_real',
+    salidaDestinoReal:     'salida_destino_real',
+    descargaRealMin:       'descarga_real_min',
     duracionRealMin:       'duracion_real_min',
     demoraSalidaMin:       'demora_salida_min',
     kmReales:              'km_reales',
@@ -359,7 +367,7 @@ async function actualizarEnDB(id, fields) {
   };
 
   // Columnas datetime que necesitan conversión ISO → MySQL
-  const datetimeCols = new Set(['salida_real', 'llegada_real']);
+  const datetimeCols = new Set(['salida_real', 'llegada_real', 'salida_destino_real']);
 
   for (const [key, col] of Object.entries(map)) {
     if (fields[key] !== undefined) {
@@ -385,6 +393,49 @@ async function actualizarEnDB(id, fields) {
   } catch (err) {
     log('error', `Error al actualizar viaje ${id}: ${err.message}`);
   }
+}
+
+// ── Cierre de descarga ───────────────────────────────────────────────────────
+
+/**
+ * Listener del hook `onViajeIniciado` de libres.js. Cuando un equipo arranca
+ * un viaje libre saliendo de la geocerca G, busca el viaje programado más
+ * reciente del mismo equipo cuyo destino == G, llegó (llegadaReal != null) y
+ * todavía no cerró descarga (salidaDestinoReal == null), y lo cierra.
+ */
+async function marcarFinDescarga(codigo, geocercaOrigenId, timestamp) {
+  if (!codigo || !geocercaOrigenId || !timestamp) return;
+  const codigoUp = String(codigo).toUpperCase();
+
+  const candidatos = [..._cache.values()].filter(vp =>
+    !vp.cancelado &&
+    (vp.codigoEquipo || vp.patente || '').toUpperCase() === codigoUp &&
+    Number(vp.geocercaDestinoId) === Number(geocercaOrigenId) &&
+    vp.llegadaReal &&
+    !vp.salidaDestinoReal
+  );
+  if (candidatos.length === 0) return;
+
+  // El más reciente por llegadaReal — corresponde a la última visita
+  candidatos.sort((a, b) => new Date(b.llegadaReal) - new Date(a.llegadaReal));
+  const vp = candidatos[0];
+
+  const llegadaMs = new Date(vp.llegadaReal).getTime();
+  const salidaMs  = new Date(timestamp).getTime();
+  const descargaMin = Math.round((salidaMs - llegadaMs) / 60000);
+
+  if (descargaMin < 0) {
+    log('warn', `Fin descarga inválido VP #${vp.id}: salida (${timestamp}) anterior a llegada (${vp.llegadaReal})`);
+    return;
+  }
+
+  vp.salidaDestinoReal = new Date(timestamp).toISOString();
+  vp.descargaRealMin   = descargaMin;
+  await actualizarEnDB(vp.id, {
+    salidaDestinoReal: vp.salidaDestinoReal,
+    descargaRealMin:   vp.descargaRealMin,
+  });
+  log('info', `📦 VP #${vp.id} (${codigoUp}): descarga ${descargaMin}min en "${vp.geocercaDestinoNombre}"`);
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

@@ -42,6 +42,12 @@ const _distTracker = new Map();  // codigo → { lastLat, lastLng, totalKm }
 let _onViajeCompletado = null;
 export function registrarOnViajeCompletado(cb) { _onViajeCompletado = cb; }
 
+// Hook que se dispara cuando un viaje libre arranca (sale de una geocerca).
+// Lo usa programados.js para cerrar la descarga del viaje programado anterior
+// (cuyo destino coincide con la geocerca origen del nuevo viaje libre).
+let _onViajeIniciado = null;
+export function registrarOnViajeIniciado(cb) { _onViajeIniciado = cb; }
+
 function log(level, msg) {
   console[level](`[${new Date().toISOString()}] [ViajesLibres] ${msg}`);
 }
@@ -394,6 +400,14 @@ export async function procesarAlertaRedGPS({ vehiculo, tipo, geocerca, timestamp
       _enCurso.set(clave, viaje);
       _distTracker.delete(clave);  // reset tracker al iniciar viaje
       log('info', `Viaje abierto: ${viaje.etiqueta} salió de "${geocerca.nombre}"`);
+
+      // Hook: notificar a programados.js que este equipo salió de geocercaOrigen.
+      // Si hay un viaje programado cumplido cuyo destino == esta geocerca, cerrar
+      // la descarga (calcular descarga_real_min).
+      if (_onViajeIniciado) {
+        try { _onViajeIniciado(clave, geocerca.idCerca, timestamp); }
+        catch (e) { log('warn', `_onViajeIniciado falló: ${e.message}`); }
+      }
     } else {
       const viaje = _enCurso.get(clave);
       if (viaje.estado !== 'en_transito') {

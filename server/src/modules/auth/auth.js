@@ -16,6 +16,14 @@ import { query } from '../../database/database.js';
 // tokens locales de fleetops_usuarios (comportamiento aditivo, no destructivo).
 const HUB_JWT_SECRET = process.env.HUB_JWT_SECRET || null;
 
+// Mapping empresaId (Hub) → nombre legacy (FleetOps fleetops_usuarios.empresa).
+// Necesario para que el filtrado multi-tenant siga funcionando para users del
+// Hub con rol no-admin (rol=empresa, requireEmpresa filtra por nombre).
+const EMPRESAS_BY_ID = {
+  1: 'Corralon el Mercado',
+  2: 'VIAP',
+};
+
 function verifyHubToken(token) {
   if (!HUB_JWT_SECRET) return null;
   try {
@@ -23,11 +31,15 @@ function verifyHubToken(token) {
     const rolEnFleetops = decoded?.permisos?.fleetops;
     if (!rolEnFleetops) return null;
     const rol = rolEnFleetops === 'admin' ? 'admin' : 'empresa';
+    const empresaId = Array.isArray(decoded.empresas) ? decoded.empresas[0] : null;
+    const empresa = (rol === 'empresa' && empresaId)
+      ? (EMPRESAS_BY_ID[empresaId] || null)
+      : null;
     return {
       id:       decoded.userId,
       username: decoded.email,
       rol,
-      empresa:  null,
+      empresa,
       nombre:   decoded.email?.split('@')[0] || 'Hub user',
       _hub:     true,
     };
